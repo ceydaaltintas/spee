@@ -1,0 +1,136 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+}
+
+model Team {
+  id               String         @id @default(uuid())
+  name             String
+  sourceSystem     SourceSystem
+  activeTechnique  Technique      @default(FIBONACCI)
+  velocityAvg      Float?
+  lastCalibratedAt DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  weights          TeamWeight[]
+  estimations      EstimationResult[]
+  outcomes         ActualOutcome[]
+  config           TeamConfig?
+}
+
+model TeamConfig {
+  id               String   @id @default(uuid())
+  teamId           String   @unique
+  team             Team     @relation(fields: [teamId], references: [id])
+  customThresholds Json?
+  calibrationLog   Json?
+  updatedAt        DateTime @updatedAt
+}
+
+model TeamWeight {
+  id          String   @id @default(uuid())
+  teamId      String
+  team        Team     @relation(fields: [teamId], references: [id])
+  taskType    TaskType
+  criteriaKey String
+  weight      Float
+
+  @@unique([teamId, taskType, criteriaKey])
+}
+
+model WorkItemCache {
+  id             String       @id @default(uuid())
+  sourceSystem   SourceSystem
+  sourceId       String
+  teamId         String
+  title          String
+  description    String?
+  rawPayload     Json
+  acCount        Int?
+  extractedSignals Json?
+  cachedAt       DateTime     @default(now())
+
+  estimations    EstimationResult[]
+
+  @@unique([sourceSystem, sourceId, teamId])
+}
+
+model EstimationResult {
+  id              String      @id @default(uuid())
+  workItemCacheId String
+  workItem        WorkItemCache @relation(fields: [workItemCacheId], references: [id])
+  teamId          String
+  team            Team        @relation(fields: [teamId], references: [id])
+
+  taskType        TaskType
+  technique       Technique
+
+  ruleBasedScore  Float
+  ruleBasedSP     Int
+  cbrSP           Int?
+  cbrSimilarity   Float?
+  ensembleSP      Int?
+
+  suggestedSP     Int
+  confidenceScore Float
+  confidenceLow   Int?
+  confidenceHigh  Int?
+
+  criteriaSnapshot Json
+
+  approvedSP      Int?
+  approvedAt      DateTime?
+  approvedBy      String?
+
+  createdAt       DateTime    @default(now())
+
+  outcome         ActualOutcome?
+}
+
+model ActualOutcome {
+  id                 String           @id @default(uuid())
+  estimationResultId String           @unique
+  estimation         EstimationResult @relation(fields: [estimationResultId], references: [id])
+  teamId             String
+  team               Team             @relation(fields: [teamId], references: [id])
+
+  sprintId           String
+  plannedSP          Int
+  actualHours        Float?
+  completedInSprint  Boolean
+  reopenCount        Int              @default(0)
+  spilloverCount     Int              @default(0)
+
+  recordedAt         DateTime         @default(now())
+}
+
+enum SourceSystem {
+  JIRA
+  ADO
+}
+
+enum Technique {
+  FIBONACCI
+  MODIFIED_FIBONACCI
+  TSHIRT
+  POWERS_OF_TWO
+  LINEAR
+  CUSTOM
+}
+
+enum TaskType {
+  USER_STORY
+  BUG
+  ANALYSIS
+  TEST_TASK
+  DESIGN
+  DEVOPS
+  SPIKE
+  SUB_TASK
+}
