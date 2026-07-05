@@ -6,7 +6,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const apiKey = localStorage.getItem('spee_api_key') || 'dev-api-key';
+  const apiKey = localStorage.getItem('spee_api_key') || import.meta.env.VITE_API_KEY || 'dev-api-key';
   config.headers.Authorization = `Bearer ${apiKey}`;
   return config;
 });
