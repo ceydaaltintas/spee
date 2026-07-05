@@ -125,8 +125,6 @@ export default function App() {
     }
   }
 
-  const currentTeam = teams.find(t => t.id === teamId);
-
   return (
     <BrowserRouter>
       <Routes>

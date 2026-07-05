@@ -531,12 +531,6 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
     });
   }
 
-  function loadDummyData() {
-    const dummy = DUMMY_DATA[taskType] ?? DUMMY_DATA['USER_STORY'];
-    setSourceId(dummy.sourceId);
-    if (dummy.taskType !== taskType) setTaskType(dummy.taskType as TaskType);
-    setCriteria(dummy.criteria);
-  }
 
   function applyTemplate(t: typeof TEMPLATES[0]) {
     setTaskType(t.taskType as TaskType);
@@ -1046,7 +1040,6 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                 if (!rv) return '—';
                 if (rv.type === 'boolean') return rv.value ? 'Evet' : 'Hayır';
                 if (rv.type === 'scale5') {
-                  const parts = getScaleLabel(key, rv.value as number).split(' — ');
                   return String(rv.value);
                 }
                 return String(rv.value);
