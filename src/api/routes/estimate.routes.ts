@@ -6,12 +6,15 @@ import { calculateConfidence } from '../../engines/rule-based/confidence.js';
 import type { CriteriaInput, CriteriaValue } from '../../engines/rule-based/criteria.types.js';
 import { calculateConfidenceInterval } from '../../engines/rule-based/confidence.js';
 import { estimateBodySchema, approveBodySchema } from '../schemas/estimate.schema.js';
+import { runCriteriaCbr } from '../../engines/cbr/cbr.criteria.js';
+import { TECHNIQUE_REGISTRY } from '../../techniques/technique.registry.js';
 
 interface EstimateBody {
   sourceSystem: 'JIRA' | 'ADO';
   sourceId: string;
   teamId: string;
   taskType?: string;
+  sprintId?: string;
   manualCriteria?: Record<string, CriteriaValue>;
 }
 
@@ -25,7 +28,7 @@ export async function estimateRoutes(app: FastifyInstance) {
   app.post<{ Body: EstimateBody }>('/estimate', {
     schema: { body: estimateBodySchema },
   }, async (request, reply) => {
-    const { sourceSystem, sourceId, teamId, taskType: requestedTaskType, manualCriteria } = request.body;
+    const { sourceSystem, sourceId, teamId, taskType: requestedTaskType, sprintId, manualCriteria } = request.body;
 
     const team = await prisma.team.findUnique({
       where: { id: teamId },
@@ -93,9 +96,27 @@ export async function estimateRoutes(app: FastifyInstance) {
       });
     }
 
-    const confidenceInterval = typeof result.suggestedSP === 'number'
-      ? calculateConfidenceInterval(result.suggestedSP, confidence, technique)
-      : null;
+    // Kriter tabanlı CBR — geçmiş onaylı tahminlerle benzerlik karşılaştırması
+    const currentCriteriaForCbr = Object.fromEntries(
+      Object.entries(result.breakdown).map(([k, v]) => [k, v.rawValue]),
+    );
+    const cbrResult = await runCriteriaCbr(currentCriteriaForCbr, teamId, taskType, technique);
+
+    // Blend: similarity 0.5→0, 1.0→1 arası doğrusal ağırlık
+    let finalSP = suggestedSP;
+    if (cbrResult) {
+      const cbrWeight = Math.max(0, Math.min(1, (cbrResult.similarity - 0.5) / 0.5));
+      const blended = cbrWeight * cbrResult.sp + (1 - cbrWeight) * suggestedSP;
+      const config = TECHNIQUE_REGISTRY[technique];
+      const scale = (config?.scale ?? [1, 2, 3, 5, 8, 13, 21, 34, 55])
+        .map(s => typeof s === 'number' ? s : parseInt(s as string, 10))
+        .filter(n => !isNaN(n) && n > 0);
+      finalSP = scale.reduce((closest, n) =>
+        Math.abs(n - blended) < Math.abs(closest - blended) ? n : closest
+      , scale[0]!);
+    }
+
+    const confidenceInterval = calculateConfidenceInterval(finalSP, confidence, technique);
 
     const estimation = await prisma.estimationResult.create({
       data: {
@@ -105,17 +126,20 @@ export async function estimateRoutes(app: FastifyInstance) {
         technique,
         ruleBasedScore: result.rawScore,
         ruleBasedSP: suggestedSP,
-        suggestedSP,
+        cbrSP: cbrResult?.sp ?? null,
+        cbrSimilarity: cbrResult?.similarity ?? null,
+        suggestedSP: finalSP,
         confidenceScore: confidence,
         confidenceLow: confidenceInterval?.low,
         confidenceHigh: confidenceInterval?.high,
         criteriaSnapshot: result.breakdown as any,
+        sprintId: sprintId ?? null,
       },
     });
 
     return reply.status(200).send({
       estimationId: estimation.id,
-      suggestedSP: result.suggestedSP,
+      suggestedSP: finalSP,
       technique,
       confidenceScore: confidence,
       confidenceLow: confidenceInterval?.low ?? null,
@@ -126,6 +150,7 @@ export async function estimateRoutes(app: FastifyInstance) {
       breakdown: result.breakdown,
       engines: {
         ruleBased: { rawScore: result.rawScore, sp: suggestedSP },
+        ...(cbrResult ? { cbr: { sp: cbrResult.sp, similarity: cbrResult.similarity, matchCount: cbrResult.matchCount } } : {}),
       },
     });
   });
@@ -148,6 +173,23 @@ export async function estimateRoutes(app: FastifyInstance) {
         approvedSP,
         approvedBy,
         approvedAt: new Date(),
+      },
+    });
+
+    // Onay verildiğinde ActualOutcome otomatik oluştur (kalibrasyon için)
+    const outcomeSprintId = estimation.sprintId ?? `sprint-auto-${new Date().toISOString().slice(0, 7)}`;
+    await prisma.actualOutcome.upsert({
+      where: { estimationResultId: estimationId },
+      update: { plannedSP: approvedSP, sprintId: outcomeSprintId },
+      create: {
+        id: `ao-${estimationId}`,
+        estimationResultId: estimationId,
+        teamId: estimation.teamId,
+        sprintId: outcomeSprintId,
+        plannedSP: approvedSP,
+        completedInSprint: true,
+        reopenCount: 0,
+        spilloverCount: 0,
       },
     });
 

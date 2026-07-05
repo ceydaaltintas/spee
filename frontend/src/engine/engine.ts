@@ -1,4 +1,4 @@
-import type { CriteriaInput, CriteriaKey, CriteriaValue, EstimationResult } from './types';
+import type { CriteriaInput, CriteriaKey, EstimationResult } from './types';
 import {
   TASK_TYPE_REGISTRY, TECHNIQUE_REGISTRY, mapScoreToSP,
   BOOLEAN_MULTIPLIERS, INVERTED_CRITERIA, BOOLEAN_CRITERIA,
@@ -20,11 +20,12 @@ export function estimate(
   taskType: string,
   technique: string,
   criteria: CriteriaInput,
+  customWeights?: Record<string, number>,
 ): EstimationResult {
   const taskConfig = TASK_TYPE_REGISTRY[taskType];
   if (!taskConfig) throw new Error(`Bilinmeyen görev tipi: ${taskType}`);
 
-  const weights = taskConfig.defaultWeights;
+  const weights = customWeights ?? taskConfig.defaultWeights;
 
   let weightedSum = 0;
   let multiplier = 1.0;

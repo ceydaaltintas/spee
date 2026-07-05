@@ -38,11 +38,14 @@ export interface EstimateResponse {
 
 export interface TeamConfig {
   teamId: string;
+  joinCode: string;
   name: string;
   sourceSystem: SourceSystem;
   activeTechnique: Technique;
   velocityAvg: number | null;
   weights: Record<string, Record<string, number>>;
+  weightSources: Record<string, Record<string, string>>; // 'manual' | 'calibration'
+  activeCriteriaOverrides: Record<string, string[]> | null; // null = use defaults
 }
 
 export interface HistoryItem {
@@ -66,6 +69,23 @@ export interface HistoryItem {
   } | null;
 }
 
+export interface BaselineStory {
+  id: string;
+  teamId: string;
+  taskType: string | null; // null = genel
+  title: string;
+  description: string | null;
+  storyPoints: number;
+  compDevelopment: number | null;
+  compAnalysis: number | null;
+  compTesting: number | null;
+  compDesign: number | null;
+  compDevops: number | null;
+  criteriaSnapshot: Record<string, any> | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface CalibrationResult {
   currentWeights: Record<string, Record<string, number>>;
   suggestedWeights: Record<string, Record<string, number>>;
@@ -78,5 +98,13 @@ export interface CalibrationResult {
       sampleCount: number;
     }>;
     shouldCalibrate: boolean;
+    estimations: {
+      estimationId: string;
+      sourceId: string;
+      taskType: string;
+      suggestedSP: number;
+      approvedSP: number;
+      sprintId: string | null;
+    }[];
   };
 }

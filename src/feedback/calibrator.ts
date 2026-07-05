@@ -31,7 +31,7 @@ export async function generateCalibrationSuggestion(
     currentWeights[taskType] = { ...current };
 
     const drift = driftAnalysis.byTaskType[taskType];
-    if (!drift || drift.sampleCount < 3) {
+    if (!drift || drift.sampleCount < 1) {
       suggestedWeights[taskType] = { ...current };
       continue;
     }
@@ -52,12 +52,26 @@ function adjustWeights(
     return { ...weights };
   }
 
-  const factor = direction === 'over' ? 1 + meanError * 0.1 : 1 - meanError * 0.1;
+  const keys = Object.keys(weights);
+  const n = keys.length;
+  if (n === 0) return weights;
+
+  // How strongly to shift the distribution (capped at 20%)
+  const strength = Math.min(meanError * 0.3, 0.20);
+  const equalShare = 1 / n;
   const adjusted: Record<string, number> = {};
 
-  const keys = Object.keys(weights);
   for (const key of keys) {
-    adjusted[key] = weights[key]! * factor;
+    const w = weights[key]!;
+    const deviation = w - equalShare;
+    if (direction === 'under') {
+      // Amplify high-weight criteria — they signal complexity that's being underweighted
+      adjusted[key] = w + deviation * strength;
+    } else {
+      // Compress toward equal — reduce over-reliance on dominant criteria
+      adjusted[key] = w - deviation * strength;
+    }
+    adjusted[key] = Math.max(adjusted[key]!, 0.01); // floor at 1%
   }
 
   const sum = Object.values(adjusted).reduce((a, b) => a + b, 0);

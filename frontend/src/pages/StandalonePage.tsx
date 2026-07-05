@@ -4,15 +4,79 @@ import { TASK_TYPE_REGISTRY, TECHNIQUE_REGISTRY, BOOLEAN_CRITERIA } from '../eng
 import { criteriaLabel, criteriaDescription, TECHNIQUE_LABELS, TASK_TYPE_LABELS } from '../api/labels';
 import { getScaleLabel } from '../engine/scale-labels';
 import { TEMPLATES } from '../engine/templates';
+import { ALL_CRITERIA_BY_TASK_TYPE, BOOLEAN_KEYS, DEFAULT_WEIGHTS, normalizeWeights } from '../engine/defaults';
 import type { CriteriaInput, EstimationResult } from '../engine/types';
+
+const CONFIG_KEY = 'spee_standalone_config';
+
+type LocalWeights = Record<string, { weight: number; active: boolean }>;
+type AllWeights = Record<string, LocalWeights>;
+
+type SavedConfig = {
+  weights: Record<string, Record<string, number>>;
+  activeCriteria: Record<string, string[]>;
+};
+
+function buildLocalWeights(tt: string, saved: Partial<SavedConfig>): LocalWeights {
+  const allCriteria = ALL_CRITERIA_BY_TASK_TYPE[tt] ?? [];
+  const defaults = DEFAULT_WEIGHTS[tt] ?? {};
+  const savedW = saved.weights?.[tt] ?? {};
+  const savedActive = saved.activeCriteria?.[tt] ?? null;
+  const result: LocalWeights = {};
+  for (const c of allCriteria) {
+    if (BOOLEAN_KEYS.has(c.key)) continue;
+    const active = savedActive ? savedActive.includes(c.key) : c.key in defaults;
+    result[c.key] = {
+      weight: savedW[c.key] ?? defaults[c.key] ?? 0,
+      active,
+    };
+  }
+  return result;
+}
+
+function loadAllWeights(): AllWeights {
+  let saved: Partial<SavedConfig> = {};
+  try {
+    const raw = localStorage.getItem(CONFIG_KEY);
+    if (raw) saved = JSON.parse(raw) as SavedConfig;
+  } catch { /* */ }
+  const result: AllWeights = {};
+  for (const tt of Object.keys(ALL_CRITERIA_BY_TASK_TYPE)) {
+    result[tt] = buildLocalWeights(tt, saved);
+  }
+  return result;
+}
+
+function persistWeights(tt: string, local: LocalWeights) {
+  let saved: Partial<SavedConfig> = {};
+  try {
+    const raw = localStorage.getItem(CONFIG_KEY);
+    if (raw) saved = JSON.parse(raw) as SavedConfig;
+  } catch { /* */ }
+  const weights = { ...(saved.weights ?? {}), [tt]: Object.fromEntries(Object.entries(local).map(([k, v]) => [k, v.weight])) };
+  const activeCriteria = { ...(saved.activeCriteria ?? {}), [tt]: Object.entries(local).filter(([, v]) => v.active).map(([k]) => k) };
+  localStorage.setItem(CONFIG_KEY, JSON.stringify({ weights, activeCriteria }));
+}
 
 const TASK_TYPES = Object.entries(TASK_TYPE_REGISTRY).map(([k, v]) => ({ value: k, label: v.label }));
 const TECHNIQUES = Object.entries(TECHNIQUE_REGISTRY).map(([k, v]) => ({ value: k, label: v.label }));
 
-function CountInput({ value, defaultValue, min, onChange, style }: {
+const COUNT_LIMITS: Record<string, { max: number; hint?: string }> = {
+  dependencyCount:     { max: 20,  hint: 'maks 20' },
+  integrationPoints:   { max: 15,  hint: 'maks 15' },
+  affectedModuleCount: { max: 20,  hint: 'maks 20' },
+  stakeholderCount:    { max: 15,  hint: 'maks 15' },
+  testCaseCount:       { max: 100, hint: 'maks 100' },
+  screenCount:         { max: 20,  hint: 'maks 20' },
+  approvalRounds:      { max: 10,  hint: 'maks 10' },
+  teamMemberCount:     { max: 15,  hint: 'maks 15' },
+};
+
+function CountInput({ value, defaultValue, min, max, onChange, style }: {
   value: number | undefined;
   defaultValue?: number;
   min: number;
+  max?: number;
   onChange: (val: string) => void;
   style: React.CSSProperties;
 }) {
@@ -30,16 +94,24 @@ function CountInput({ value, defaultValue, min, onChange, style }: {
       onChange={e => {
         const v = e.target.value.replace(/[^0-9]/g, '');
         setText(v);
-        if (v !== '') onChange(v);
+        if (v !== '') {
+          const num = Number(v);
+          const clamped = max !== undefined && num > max ? String(max) : v;
+          onChange(clamped);
+          if (clamped !== v) setText(clamped);
+        }
       }}
-      onFocus={() => { setFocused(true); setText(''); }}
-      onBlur={e => {
+      onFocus={e => { setFocused(true); setText(String(value ?? defaultValue ?? '')); e.target.select(); }}
+      onBlur={() => {
         setFocused(false);
         const num = Number(text);
         if (text === '' || num < min) {
           const fallback = String(defaultValue ?? min);
           setText(fallback);
           onChange(fallback);
+        } else if (max !== undefined && num > max) {
+          setText(String(max));
+          onChange(String(max));
         }
       }}
       placeholder={String(defaultValue ?? '0')}
@@ -91,6 +163,9 @@ export default function StandalonePage() {
   const [darkMode, setDarkMode] = useState(true);
   const [showTemplates, setShowTemplates] = useState(false);
   const [counter, setCounter] = useState(1);
+  const [activeTab, setActiveTab] = useState<'tahmin' | 'ayarlar'>('tahmin');
+  const [allWeights, setAllWeights] = useState<AllWeights>(loadAllWeights);
+  const [openTaskType, setOpenTaskType] = useState<string | null>('USER_STORY');
 
   const taskConfig = TASK_TYPE_REGISTRY[taskType];
   const activeCriteria = [...new Set(taskConfig?.activeCriteria ?? [])];
@@ -116,9 +191,64 @@ export default function StandalonePage() {
   ).length;
   const canEstimate = nonBooleanFilled >= 3;
 
+  function handleWeightChange(tt: string, key: string, newPct: number) {
+    const newFrac = Math.max(0, Math.min(99, newPct)) / 100;
+    setAllWeights(prev => {
+      const current = prev[tt];
+      const activeWeights: Record<string, number> = {};
+      for (const [k, v] of Object.entries(current)) {
+        if (v.active) activeWeights[k] = v.weight;
+      }
+      const normalized = normalizeWeights(activeWeights, key, newFrac);
+      return {
+        ...prev,
+        [tt]: Object.fromEntries(
+          Object.entries(current).map(([k, v]) => [k, v.active ? { ...v, weight: normalized[k] ?? v.weight } : v])
+        ),
+      };
+    });
+  }
+
+  function handleToggleActive(tt: string, key: string, active: boolean) {
+    setAllWeights(prev => {
+      const current = prev[tt];
+      const updated = { ...current, [key]: { ...current[key], active } };
+      const activeWeights: Record<string, number> = {};
+      for (const [k, v] of Object.entries(updated)) {
+        if (v.active) activeWeights[k] = v.weight;
+      }
+      const total = Object.values(activeWeights).reduce((s, w) => s + w, 0);
+      if (total > 0) for (const k of Object.keys(activeWeights)) activeWeights[k] /= total;
+      return {
+        ...prev,
+        [tt]: Object.fromEntries(
+          Object.entries(updated).map(([k, v]) => [k, v.active ? { ...v, weight: activeWeights[k] ?? v.weight } : v])
+        ),
+      };
+    });
+  }
+
+  function handleSaveWeights(tt: string) {
+    persistWeights(tt, allWeights[tt] ?? {});
+  }
+
+  function handleResetDefaults(tt: string) {
+    const defaults = DEFAULT_WEIGHTS[tt] ?? {};
+    setAllWeights(prev => ({
+      ...prev,
+      [tt]: Object.fromEntries(
+        Object.entries(prev[tt]).map(([k, v]) => [k, { ...v, weight: defaults[k] ?? v.weight, active: k in defaults }])
+      ),
+    }));
+  }
+
   function handleEstimate() {
     if (!canEstimate) return;
-    const res = estimate(taskType, technique, criteria);
+    const local = allWeights[taskType];
+    const customWeights = local
+      ? Object.fromEntries(Object.entries(local).map(([k, v]) => [k, v.active ? v.weight : 0]))
+      : undefined;
+    const res = estimate(taskType, technique, criteria, customWeights);
     setResult(res);
     setHistory(prev => [{
       id: counter,
@@ -187,11 +317,17 @@ export default function StandalonePage() {
       <div className="app">
         <header style={{ borderColor: theme.border }}>
           <h1 style={{ color: theme.accent }}>SPEE</h1>
-          <span className="subtitle" style={{ color: theme.textDim }}>Bağımsız Story Point Tahmin Aracı</span>
+          <span className="subtitle" style={{ color: theme.textDim }}>Story Point Estimation Engine — Bağımsız Mod</span>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <span style={{ color: '#6ee7b7', fontSize: '0.75rem', background: '#065f46', padding: '2px 8px', borderRadius: '4px' }}>
               Çevrimdışı
             </span>
+            <a
+              href="/"
+              style={{ fontSize: '0.8rem', padding: '4px 10px', borderRadius: '6px', border: `1px solid ${theme.border}`, background: theme.card, color: theme.textMuted, textDecoration: 'none', whiteSpace: 'nowrap' }}
+            >
+              ← Ana Uygulama
+            </a>
             <button
               onClick={() => setDarkMode(!darkMode)}
               style={{ background: theme.card, border: `1px solid ${theme.border}`, color: theme.text, padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}
@@ -201,7 +337,120 @@ export default function StandalonePage() {
           </div>
         </header>
 
+        <nav style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${theme.border}`, marginBottom: '1rem' }}>
+          {(['tahmin', 'ayarlar'] as const).map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)} style={{
+              background: 'none', border: 'none', borderBottom: `2px solid ${activeTab === tab ? theme.accent : 'transparent'}`,
+              color: activeTab === tab ? theme.accent : theme.textDim,
+              fontWeight: activeTab === tab ? 600 : 400,
+              padding: '0.5rem 1.25rem', cursor: 'pointer', fontSize: '0.9rem', borderRadius: 0,
+            }}>
+              {tab === 'tahmin' ? 'Tahmin' : 'Ayarlar'}
+            </button>
+          ))}
+        </nav>
+
         <main>
+          {activeTab === 'ayarlar' && (
+            <div>
+              <h2 style={{ color: theme.text }}>Kriter Ağırlıkları</h2>
+              <p style={{ color: theme.textDim, fontSize: '0.8rem', marginBottom: '1rem' }}>
+                Her görev tipi için hangi kriterlerin kullanılacağını ve ağırlıklarını ayarla.
+                Bir kriteri kapattığında ağırlığı diğerlerine orantılı dağıtılır. Kaydet butonuna basınca tarayıcıya kaydedilir.
+              </p>
+              {Object.keys(ALL_CRITERIA_BY_TASK_TYPE).map(tt => {
+                const local = allWeights[tt] ?? {};
+                const defaults = DEFAULT_WEIGHTS[tt] ?? {};
+                const isOpen = openTaskType === tt;
+                const activeCount = Object.values(local).filter(v => v.active).length;
+                const hasChanges = Object.entries(local).some(([k, v]) => {
+                  const def = defaults[k];
+                  return def !== undefined && (Math.abs(v.weight - def) > 0.005 || v.active !== (k in defaults));
+                });
+                return (
+                  <div key={tt} style={{ marginBottom: '0.5rem', overflow: 'hidden', border: `1px solid ${theme.border}`, borderRadius: '8px' }}>
+                    <div onClick={() => setOpenTaskType(isOpen ? null : tt)} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: theme.card, cursor: 'pointer', userSelect: 'none' }}>
+                      <span style={{ color: theme.accent, fontSize: '0.8rem' }}>{isOpen ? '▼' : '▶'}</span>
+                      <strong style={{ flex: 1, color: theme.text }}>{TASK_TYPE_LABELS[tt] ?? tt}</strong>
+                      <span style={{ fontSize: '0.75rem', color: theme.textDim }}>{activeCount} kriter aktif</span>
+                      {hasChanges && (
+                        <span style={{ fontSize: '0.7rem', background: darkMode ? '#1c1917' : '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px' }}>
+                          değiştirildi
+                        </span>
+                      )}
+                    </div>
+                    {isOpen && (
+                      <div style={{ padding: '1rem', background: darkMode ? '#0f172a' : '#ffffff' }}>
+                        <table style={{ marginBottom: '0.75rem' }}>
+                          <thead>
+                            <tr>
+                              <th style={{ width: '32px' }}></th>
+                              <th>Kriter</th>
+                              <th style={{ width: '80px', textAlign: 'right' }}>Varsayılan</th>
+                              <th style={{ width: '64px', textAlign: 'right' }}>Mevcut</th>
+                              <th style={{ width: '150px' }}>Ağırlık</th>
+                              <th style={{ width: '60px', textAlign: 'right' }}>Fark</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(local)
+                              .sort((a, b) => (b[1].active ? 1 : 0) - (a[1].active ? 1 : 0) || b[1].weight - a[1].weight)
+                              .map(([key, val]) => {
+                                const def = defaults[key];
+                                const diff = def !== undefined ? val.weight - def : null;
+                                const diffPct = diff !== null ? diff * 100 : null;
+                                return (
+                                  <tr key={key} style={{ opacity: val.active ? 1 : 0.4 }}>
+                                    <td>
+                                      <input type="checkbox" checked={val.active}
+                                        onChange={e => handleToggleActive(tt, key, e.target.checked)}
+                                        style={{ width: '16px', height: '16px' }} />
+                                    </td>
+                                    <td style={{ fontSize: '0.85rem', color: theme.text }}>{criteriaLabel(key)}</td>
+                                    <td style={{ textAlign: 'right', color: theme.textDim, fontSize: '0.8rem' }}>
+                                      {def !== undefined ? `%${(def * 100).toFixed(0)}` : '—'}
+                                    </td>
+                                    <td style={{ textAlign: 'right', fontWeight: 600, fontSize: '0.85rem', color: theme.text }}>
+                                      {val.active ? `%${(val.weight * 100).toFixed(0)}` : '—'}
+                                    </td>
+                                    <td>
+                                      {val.active && (
+                                        <input type="range" min={1} max={60} step={1}
+                                          value={Math.round(val.weight * 100)}
+                                          onChange={e => handleWeightChange(tt, key, Number(e.target.value))}
+                                          style={{ width: '100%', accentColor: theme.accent }} />
+                                      )}
+                                    </td>
+                                    <td style={{ textAlign: 'right', fontSize: '0.8rem', fontWeight: 600 }}>
+                                      {diffPct !== null && val.active && Math.abs(diffPct) > 0.5 ? (
+                                        <span style={{ color: diffPct > 0 ? '#fbbf24' : '#6ee7b7' }}>
+                                          {diffPct > 0 ? `+${diffPct.toFixed(0)}` : diffPct.toFixed(0)}%
+                                        </span>
+                                      ) : <span style={{ color: theme.border }}>—</span>}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <button onClick={() => handleSaveWeights(tt)} className="primary">Kaydet</button>
+                          <button onClick={() => handleResetDefaults(tt)} style={{ color: theme.textDim, background: 'transparent', borderColor: theme.border }}>
+                            Varsayılana sıfırla
+                          </button>
+                          <span style={{ fontSize: '0.75rem', color: theme.textDim, marginLeft: 'auto' }}>
+                            Toplam: %{(Object.values(local).filter(v => v.active).reduce((s, v) => s + v.weight, 0) * 100).toFixed(0)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {activeTab === 'tahmin' && <>
           {/* Üst kontroller */}
           <div className="form-row" style={{ flexWrap: 'wrap' }}>
             <label style={{ color: theme.textMuted }}>Görev Tipi
@@ -286,13 +535,19 @@ export default function StandalonePage() {
                       ))}
                     </select>
                   ) : (
-                    <CountInput
-                      value={(criteria as any)[c]?.value as number | undefined}
-                      defaultValue={c === 'teamMemberCount' ? 1 : undefined}
-                      min={c === 'teamMemberCount' ? 1 : 0}
-                      onChange={val => setCriterion(c, 'count', val)}
-                      style={{ background: theme.bg, color: theme.text, borderColor: theme.border }}
-                    />
+                    <>
+                      <CountInput
+                        value={(criteria as any)[c]?.value as number | undefined}
+                        defaultValue={c === 'teamMemberCount' ? 1 : undefined}
+                        min={c === 'teamMemberCount' ? 1 : 0}
+                        max={COUNT_LIMITS[c]?.max}
+                        onChange={val => setCriterion(c, 'count', val)}
+                        style={{ background: theme.bg, color: theme.text, borderColor: theme.border }}
+                      />
+                      {COUNT_LIMITS[c]?.hint && (
+                        <small style={{ color: theme.textDim, fontSize: '0.7rem' }}>{COUNT_LIMITS[c].hint}</small>
+                      )}
+                    </>
                   )}
                 </div>
               );
@@ -466,6 +721,13 @@ export default function StandalonePage() {
                 const spDiff = spCur - spPrev;
 
                 const allKeys = [...new Set([...Object.keys(cur.breakdown), ...Object.keys(prev.breakdown)])];
+
+                function rawLabel(rv: { type: string; value: number | boolean } | undefined): string {
+                  if (!rv) return '—';
+                  if (rv.type === 'boolean') return rv.value ? 'Evet' : 'Hayır';
+                  return String(rv.value);
+                }
+
                 const diffs = allKeys
                   .filter(k => cur.breakdown[k]?.rawValue.type !== 'boolean' || prev.breakdown[k]?.rawValue.type !== 'boolean')
                   .map(k => {
@@ -473,7 +735,10 @@ export default function StandalonePage() {
                     const prevVal = prev.breakdown[k];
                     const curContrib = curVal?.rawValue.type !== 'boolean' ? (curVal?.contribution ?? 0) : 0;
                     const prevContrib = prevVal?.rawValue.type !== 'boolean' ? (prevVal?.contribution ?? 0) : 0;
-                    return { key: k, curContrib, prevContrib, diff: curContrib - prevContrib };
+                    return {
+                      key: k, curContrib, prevContrib, diff: curContrib - prevContrib,
+                      curLabel: rawLabel(curVal?.rawValue), prevLabel: rawLabel(prevVal?.rawValue),
+                    };
                   })
                   .filter(d => Math.abs(d.diff) > 0.001)
                   .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
@@ -510,20 +775,25 @@ export default function StandalonePage() {
                         <h4 style={{ color: theme.text, marginBottom: '0.5rem' }}>
                           {spDiff > 0 ? 'Bu tahmin neden daha yüksek?' : spDiff < 0 ? 'Bu tahmin neden daha düşük?' : 'Kriter farkları'}
                         </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: '160px 20px 1fr 50px 90px', gap: '8px', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', paddingBottom: '4px', borderBottom: `1px solid ${theme.border}` }}>
+                          <div /><div /><div />
+                          <div style={{ color: theme.accent, textAlign: 'center' }}>Mevcut</div>
+                          <div style={{ color: theme.textDim, textAlign: 'center' }}>Karşılaştırılan</div>
+                        </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           {diffs.map(d => {
                             const isHigher = d.diff > 0;
                             return (
-                              <div key={d.key} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
-                                <div style={{ width: '160px', textAlign: 'right', color: theme.textMuted, flexShrink: 0 }}>
+                              <div key={d.key} style={{ display: 'grid', gridTemplateColumns: '160px 20px 1fr 50px 90px', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
+                                <div style={{ textAlign: 'right', color: theme.textMuted }}>
                                   {criteriaLabel(d.key)}
                                 </div>
-                                <div style={{ width: '24px', textAlign: 'center', fontSize: '0.9rem', color: isHigher ? '#fca5a5' : '#6ee7b7' }}>
+                                <div style={{ textAlign: 'center', fontSize: '0.9rem', color: isHigher ? '#fca5a5' : '#6ee7b7' }}>
                                   {isHigher ? '▲' : '▼'}
                                 </div>
-                                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <div style={{
-                                    height: '16px', borderRadius: '3px',
+                                    height: '14px', borderRadius: '3px',
                                     width: `${Math.min(100, Math.abs(d.diff) * 50)}%`,
                                     background: isHigher ? '#fca5a544' : '#6ee7b744',
                                     border: `1px solid ${isHigher ? '#fca5a5' : '#6ee7b7'}`,
@@ -533,9 +803,8 @@ export default function StandalonePage() {
                                     {isHigher ? '+' : ''}{d.diff.toFixed(2)}
                                   </span>
                                 </div>
-                                <div style={{ width: '100px', fontSize: '0.7rem', color: theme.textDim, textAlign: 'right' }}>
-                                  {d.prevContrib.toFixed(2)} → {d.curContrib.toFixed(2)}
-                                </div>
+                                <div style={{ textAlign: 'center', color: theme.textMuted, fontWeight: 600 }}>{d.curLabel}</div>
+                                <div style={{ textAlign: 'center', color: theme.textDim }}>{d.prevLabel}</div>
                               </div>
                             );
                           })}
@@ -580,6 +849,7 @@ export default function StandalonePage() {
               </table>
             </div>
           )}
+          </>}
         </main>
       </div>
     </div>

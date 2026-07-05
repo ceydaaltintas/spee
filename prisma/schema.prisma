@@ -10,6 +10,7 @@ datasource db {
 
 model Team {
   id               String         @id @default(uuid())
+  joinCode         String         @unique
   name             String
   sourceSystem     SourceSystem
   activeTechnique  Technique      @default(FIBONACCI)
@@ -22,6 +23,7 @@ model Team {
   estimations      EstimationResult[]
   outcomes         ActualOutcome[]
   config           TeamConfig?
+  baselines        BaselineStory[]
 }
 
 model TeamConfig {
@@ -40,8 +42,33 @@ model TeamWeight {
   taskType    TaskType
   criteriaKey String
   weight      Float
+  source      String   @default("manual") // 'manual' | 'calibration'
 
   @@unique([teamId, taskType, criteriaKey])
+}
+
+model BaselineStory {
+  id          String    @id @default(uuid())
+  teamId      String
+  team        Team      @relation(fields: [teamId], references: [id])
+  taskType    TaskType? // null = genel baz iş
+  title       String
+  description String?
+  storyPoints Int
+
+  // Genel baz iş için içerik dağılımı (0-1 arası, toplamı 1 olması şart değil)
+  compDevelopment Float?
+  compAnalysis    Float?
+  compTesting     Float?
+  compDesign      Float?
+  compDevops      Float?
+
+  // Opsiyonel: kriter değerleri (motor bu kayıttan öğrenir)
+  criteriaSnapshot Json?
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model WorkItemCache {
@@ -83,6 +110,8 @@ model EstimationResult {
   confidenceHigh  Int?
 
   criteriaSnapshot Json
+
+  sprintId        String?
 
   approvedSP      Int?
   approvedAt      DateTime?

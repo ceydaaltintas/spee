@@ -7,6 +7,7 @@ import { teamRoutes } from './api/routes/teams.routes.js';
 import { webhookRoutes } from './api/routes/webhooks.routes.js';
 import { historyRoutes } from './api/routes/history.routes.js';
 import { calibrateRoutes } from './api/routes/calibrate.routes.js';
+import { baselineRoutes } from './api/routes/baseline.routes.js';
 
 export function buildApp() {
   const app = Fastify({ logger: env.NODE_ENV !== 'test' });
@@ -19,6 +20,7 @@ export function buildApp() {
   app.register(webhookRoutes, { prefix: '/api/v1' });
   app.register(historyRoutes, { prefix: '/api/v1' });
   app.register(calibrateRoutes, { prefix: '/api/v1' });
+  app.register(baselineRoutes, { prefix: '/api/v1' });
 
   app.get('/health', { config: { skipAuth: true } }, async () => ({ status: 'ok' }));
 

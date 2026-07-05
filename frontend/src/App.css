@@ -34,6 +34,7 @@ header h1 {
 
 .team-select {
   margin-left: auto;
+  position: relative;
 }
 
 .team-select input {
@@ -75,11 +76,13 @@ label {
 
 input, select {
   padding: 0.5rem;
+  height: 38px;
   border: 1px solid #334155;
   border-radius: 6px;
   background: #1e293b;
   color: #e2e8f0;
   font-size: 0.9rem;
+  box-sizing: border-box;
 }
 
 input:focus, select:focus {
@@ -304,3 +307,231 @@ td.sp {
 .weights-section {
   margin-top: 1.5rem;
 }
+
+/* ── Aydınlık mod ──────────────────────────────────────────── */
+body.light-mode {
+  background: #f8fafc;
+  color: #1e293b;
+}
+.light-mode header { border-color: #e2e8f0; }
+.light-mode header h1 { color: #0369a1; }
+.light-mode .subtitle { color: #94a3b8; }
+.light-mode nav { border-color: #e2e8f0; }
+.light-mode nav a { color: #64748b; }
+.light-mode nav a:hover { color: #1e293b; }
+.light-mode nav a.active { color: #0369a1; border-bottom-color: #0369a1; }
+.light-mode input, .light-mode select {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+.light-mode input:focus, .light-mode select:focus { border-color: #0369a1; }
+.light-mode button {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+.light-mode button:hover { background: #e2e8f0; }
+.light-mode button.primary { background: #0369a1; border-color: #0284c7; color: #fff; }
+.light-mode button.primary:hover { background: #0284c7; }
+.light-mode button.active { background: #0369a1; color: #fff; }
+.light-mode h2 { color: #1e293b; }
+.light-mode h3 { color: #334155; }
+.light-mode h4 { color: #64748b; }
+.light-mode label { color: #64748b; }
+.light-mode .criterion { background: #ffffff; border-color: #e2e8f0; }
+.light-mode .criterion label { color: #64748b; }
+.light-mode .result-card { background: #ffffff; border-color: #e2e8f0; }
+.light-mode .config-card { background: #ffffff; border-color: #e2e8f0; }
+.light-mode th { color: #94a3b8; border-color: #f1f5f9; }
+.light-mode td { border-color: #f1f5f9; }
+.light-mode .missing { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+.light-mode .error { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+.light-mode .info { background: #e0f2fe; border-color: #7dd3fc; color: #0369a1; }
+.light-mode .badge-ok { background: #dcfce7; color: #166534; }
+.light-mode .badge-warn { background: #fef3c7; color: #92400e; }
+.light-mode .approve-section small { color: #64748b; }
+
+/* ── Yeniden kullanılabilir card/panel sınıfları ──────────────── */
+.panel {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+}
+.light-mode .panel {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.panel-deep {
+  background: #0f172a;
+  border-radius: 8px;
+}
+.light-mode .panel-deep {
+  background: #f1f5f9;
+}
+
+.stat-card {
+  padding: 0.6rem 1rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+.light-mode .stat-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px #0000000d;
+}
+
+.stat-card-warn {
+  padding: 0.6rem 1rem;
+  background: #1e293b;
+  border: 1px solid #78350f;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+.light-mode .stat-card-warn {
+  background: #fff7ed;
+  border-color: #f59e0b;
+}
+
+.stat-label { color: #475569; margin-bottom: 2px; }
+.light-mode .stat-label { color: #64748b; }
+
+.stat-value { font-weight: 700; font-size: 1.1rem; color: #e2e8f0; }
+.light-mode .stat-value { color: #1e293b; }
+
+.accordion-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #1e293b;
+  cursor: pointer;
+  user-select: none;
+}
+.light-mode .accordion-header {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.accordion-body {
+  padding: 1rem;
+  background: #0f172a;
+}
+.light-mode .accordion-body {
+  background: #ffffff;
+}
+
+.light-mode .panel strong { color: #1e293b; }
+.light-mode .panel { color: #475569; }
+
+/* Header takım adı */
+.team-name { font-weight: 600; font-size: 0.95rem; color: #e2e8f0; }
+.light-mode .team-name { color: #1e293b; }
+
+/* Baseline kartları */
+.baseline-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.light-mode .baseline-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px #0000000d;
+}
+
+/* Dropdown popup panelleri (App header) */
+.dropdown-panel {
+  position: absolute;
+  z-index: 100;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  padding: 0.75rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: 0 8px 24px #0008;
+}
+.light-mode .dropdown-panel {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 8px 24px #00000018;
+}
+.light-mode .dropdown-panel .dropdown-title { color: #475569; }
+
+/* Soluk butonlar (Düzenle vb.) */
+button.btn-muted { color: #94a3b8; }
+.light-mode button.btn-muted { color: #475569; }
+
+/* Semantic butonlar */
+button.btn-approve {
+  color: #6ee7b7;
+  border: 1px solid #065f46;
+  background: transparent;
+}
+button.btn-approve:hover { background: #065f4622; }
+button.btn-approve:disabled { opacity: 0.4; }
+
+button.btn-danger {
+  color: #fca5a5;
+  border: 1px solid #7f1d1d;
+  background: transparent;
+}
+button.btn-danger:hover { background: #7f1d1d22; }
+button.btn-danger:disabled { opacity: 0.4; }
+
+.light-mode button.btn-approve {
+  color: #059669;
+  border-color: #059669;
+  background: transparent;
+}
+.light-mode button.btn-approve:hover { background: #05966914; }
+
+.light-mode button.btn-danger {
+  color: #dc2626;
+  border-color: #dc2626;
+  background: transparent;
+}
+.light-mode button.btn-danger:hover { background: #dc262614; }
+
+/* ── Semantic butonlar ────────────────────────────────────────── */
+button.btn-approve {
+  color: #6ee7b7;
+  border: 1px solid #065f46;
+  background: transparent;
+}
+button.btn-approve:hover { background: #065f4622; }
+button.btn-approve:disabled { opacity: 0.4; }
+
+button.btn-danger {
+  color: #fca5a5;
+  border: 1px solid #7f1d1d;
+  background: transparent;
+}
+button.btn-danger:hover { background: #7f1d1d22; }
+button.btn-danger:disabled { opacity: 0.4; }
+
+.light-mode button.btn-approve {
+  color: #059669;
+  border-color: #059669;
+  background: transparent;
+}
+.light-mode button.btn-approve:hover { background: #05966914; }
+
+.light-mode button.btn-danger {
+  color: #dc2626;
+  border-color: #dc2626;
+  background: transparent;
+}
+.light-mode button.btn-danger:hover { background: #dc262614; }
