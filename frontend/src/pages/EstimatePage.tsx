@@ -64,87 +64,6 @@ const TASK_TYPES: { value: TaskType; label: string }[] = (
   ['USER_STORY', 'BUG', 'ANALYSIS', 'TEST_TASK', 'DESIGN', 'DEVOPS', 'SPIKE', 'SUB_TASK'] as TaskType[]
 ).map(v => ({ value: v, label: TASK_TYPE_LABELS[v] }));
 
-const DUMMY_DATA: Record<string, { sourceId: string; taskType: string; criteria: Record<string, CriteriaValue> }> = {
-  USER_STORY: {
-    sourceId: 'PROJ-101',
-    taskType: 'USER_STORY',
-    criteria: {
-      technicalComplexity: { type: 'scale5', value: 4 },
-      scopeClarity: { type: 'scale5', value: 2 },
-      dependencyCount: { type: 'count', value: 5 },
-      integrationPoints: { type: 'count', value: 3 },
-      techDebtRisk: { type: 'scale5', value: 3 },
-      testLoad: { type: 'scale5', value: 4 },
-      affectedModuleCount: { type: 'count', value: 4 },
-      domainKnowledge: { type: 'scale5', value: 2 },
-      hasSimilarHistory: { type: 'boolean', value: false },
-      hasSecurityConstraint: { type: 'boolean', value: true },
-      hasPerformanceConstraint: { type: 'boolean', value: false },
-      teamMemberCount: { type: 'count', value: 2 },
-    },
-  },
-  BUG: {
-    sourceId: 'PROJ-202',
-    taskType: 'BUG',
-    criteria: {
-      reproductionDifficulty: { type: 'scale5', value: 4 },
-      rootCauseClarity: { type: 'scale5', value: 2 },
-      fixImpactScope: { type: 'scale5', value: 3 },
-      regressionRisk: { type: 'scale5', value: 4 },
-      techDebtRisk: { type: 'scale5', value: 3 },
-      domainKnowledge: { type: 'scale5', value: 2 },
-      hasSimilarHistory: { type: 'boolean', value: false },
-      hasSecurityConstraint: { type: 'boolean', value: false },
-      teamMemberCount: { type: 'count', value: 1 },
-    },
-  },
-  ANALYSIS: {
-    sourceId: 'PROJ-303',
-    taskType: 'ANALYSIS',
-    criteria: {
-      ambiguityLevel: { type: 'scale5', value: 4 },
-      scopeClarity: { type: 'scale5', value: 2 },
-      domainKnowledge: { type: 'scale5', value: 3 },
-      stakeholderCount: { type: 'count', value: 5 },
-      dataAccessDifficulty: { type: 'scale5', value: 3 },
-      outputFormality: { type: 'scale5', value: 4 },
-      dependencyCount: { type: 'count', value: 2 },
-      hasSimilarHistory: { type: 'boolean', value: true },
-      teamMemberCount: { type: 'count', value: 2 },
-    },
-  },
-  TEST_TASK: {
-    sourceId: 'PROJ-404',
-    taskType: 'TEST_TASK',
-    criteria: {
-      testCaseCount: { type: 'count', value: 20 },
-      regressionScope: { type: 'scale5', value: 3 },
-      envSetupComplexity: { type: 'scale5', value: 4 },
-      testDataComplexity: { type: 'scale5', value: 3 },
-      automationFeasibility: { type: 'scale5', value: 2 },
-      scopeClarity: { type: 'scale5', value: 3 },
-      domainKnowledge: { type: 'scale5', value: 3 },
-      hasSimilarHistory: { type: 'boolean', value: true },
-      teamMemberCount: { type: 'count', value: 2 },
-    },
-  },
-  DEVOPS: {
-    sourceId: 'PROJ-505',
-    taskType: 'DEVOPS',
-    criteria: {
-      productionRisk: { type: 'scale5', value: 5 },
-      rollbackComplexity: { type: 'scale5', value: 4 },
-      envComplexity: { type: 'scale5', value: 4 },
-      crossTeamCoordination: { type: 'scale5', value: 3 },
-      techDebtRisk: { type: 'scale5', value: 2 },
-      dependencyCount: { type: 'count', value: 4 },
-      domainKnowledge: { type: 'scale5', value: 2 },
-      hasSimilarHistory: { type: 'boolean', value: false },
-      requiresDowntime: { type: 'boolean', value: true },
-      teamMemberCount: { type: 'count', value: 3 },
-    },
-  },
-};
 
 const CRITERIA_BY_TASK_TYPE: Record<string, { key: string; type: 'scale5' | 'count' | 'boolean' }[]> = {
   USER_STORY: [
@@ -1036,7 +955,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
               const spDiff = spCur - spPrev;
               const scoreDiff = (cur.engines.ruleBased.rawScore ?? 0) - (prev.engines.ruleBased.rawScore ?? 0);
               const allKeys = [...new Set([...Object.keys(cur.breakdown), ...Object.keys(prev.breakdown)])];
-              function rawValLabel(key: string, rv: { type: string; value: number | boolean } | undefined): string {
+              function rawValLabel(_key: string, rv: { type: string; value: number | boolean } | undefined): string {
                 if (!rv) return '—';
                 if (rv.type === 'boolean') return rv.value ? 'Evet' : 'Hayır';
                 if (rv.type === 'scale5') {
