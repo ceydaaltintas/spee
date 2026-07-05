@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import cors from '@fastify/cors';
 import { env } from './config/env.js';
 import { authMiddleware } from './api/middlewares/auth.middleware.js';
 import { errorHandler } from './api/middlewares/error.middleware.js';
@@ -11,6 +12,11 @@ import { baselineRoutes } from './api/routes/baseline.routes.js';
 
 export function buildApp() {
   const app = Fastify({ logger: env.NODE_ENV !== 'test' });
+
+  app.register(cors, {
+    origin: env.CORS_ORIGIN ? env.CORS_ORIGIN.split(',') : true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  });
 
   app.setErrorHandler(errorHandler);
   app.addHook('onRequest', authMiddleware);

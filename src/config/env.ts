@@ -13,6 +13,7 @@ const envSchema = z.object({
   FEATURE_CBR: z.coerce.boolean().default(false),
   FEATURE_ENSEMBLE: z.coerce.boolean().default(false),
   FEATURE_FEEDBACK: z.coerce.boolean().default(false),
+  CORS_ORIGIN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
