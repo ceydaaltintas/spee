@@ -352,6 +352,30 @@ body.light-mode {
 .light-mode .badge-warn { background: #fef3c7; color: #92400e; }
 .light-mode .approve-section small { color: #64748b; }
 
+/* ── Kriter listesi ─────────────────────────────────────────────── */
+.criteria-row {
+  border-bottom: 1px solid #1e293b;
+  border-right: 1px solid transparent;
+}
+.criteria-row.left-col { border-right-color: #1e293b; }
+.criteria-row.last-row { border-bottom: none; }
+.criterion-name { color: #f1f5f9; font-weight: 600; }
+.criterion-desc { color: #475569; }
+.scale-btn {
+  background: #0f172a;
+  border: 2px solid #334155;
+  color: #64748b;
+}
+.scale-btn:hover { background: #1e293b; border-color: #475569; color: #94a3b8; }
+.scale-btn.scale-btn-active { background: #0284c7; border-color: #38bdf8; color: #fff; }
+.light-mode .criteria-row { border-bottom-color: #e2e8f0; }
+.light-mode .criteria-row.left-col { border-right-color: #e2e8f0; }
+.light-mode .criterion-name { color: #1e293b; }
+.light-mode .criterion-desc { color: #94a3b8; }
+.light-mode .scale-btn { background: #f1f5f9; border-color: #cbd5e1; color: #475569; }
+.light-mode .scale-btn:hover { background: #e2e8f0; border-color: #94a3b8; }
+.light-mode .scale-btn.scale-btn-active { background: #0369a1; border-color: #0284c7; color: #fff; }
+
 /* ── Yeniden kullanılabilir card/panel sınıfları ──────────────── */
 .panel {
   background: #1e293b;

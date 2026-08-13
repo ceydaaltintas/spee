@@ -5,6 +5,7 @@ import HistoryPage from './pages/HistoryPage';
 import TeamConfigPage from './pages/TeamConfigPage';
 import CalibrationPage from './pages/CalibrationPage';
 import StandalonePage from './pages/StandalonePage';
+import BulkEstimatePage from './pages/BulkEstimatePage';
 import api from './api/client';
 import type { TeamConfig } from './api/types';
 import './App.css';
@@ -218,6 +219,7 @@ export default function App() {
               <NavLink to="/history">Geçmiş</NavLink>
               <NavLink to="/config">Ayarlar</NavLink>
               <NavLink to="/calibration">Kalibrasyon</NavLink>
+              <NavLink to="/bulk">Toplu Tahmin</NavLink>
               <NavLink to="/standalone" style={{ marginLeft: 'auto', color: '#6ee7b7' }}>Bağımsız Mod</NavLink>
               <button
                 onClick={() => setDarkMode(d => !d)}
@@ -239,6 +241,7 @@ export default function App() {
                   <Route path="/history" element={<HistoryPage teamId={teamId} />} />
                   <Route path="/config" element={<TeamConfigPage teamId={teamId} onConfigSaved={handleConfigSaved} />} />
                   <Route path="/calibration" element={<CalibrationPage teamId={teamId} />} />
+                  <Route path="/bulk" element={<BulkEstimatePage teamId={teamId} />} />
                 </Routes>
               )}
             </main>

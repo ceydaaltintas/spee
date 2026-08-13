@@ -16,12 +16,13 @@ const COUNT_LIMITS: Record<string, { max: number; hint?: string }> = {
   teamMemberCount:    { max: 15, hint: 'maks 15' },
 };
 
-function CountInput({ value, defaultValue, min, max, onChange }: {
+function CountInput({ value, defaultValue, min, max, onChange, style }: {
   value: number | undefined;
   defaultValue?: number;
   min: number;
   max?: number;
   onChange: (val: string) => void;
+  style?: React.CSSProperties;
 }) {
   const [text, setText] = useState(String(value ?? defaultValue ?? ''));
   const [focused, setFocused] = useState(false);
@@ -31,6 +32,7 @@ function CountInput({ value, defaultValue, min, max, onChange }: {
       type="text"
       inputMode="numeric"
       pattern="[0-9]*"
+      style={style}
       value={shown}
       onChange={e => {
         const v = e.target.value.replace(/[^0-9]/g, '');
@@ -391,12 +393,14 @@ function saveDraft(data: object) {
 export default function EstimatePage({ teamId, teamConfig }: { teamId: string; teamConfig: { sourceSystem?: string; activeTechnique?: string } | null }) {
   const draft = loadDraft();
 
-  const [sourceSystem, setSourceSystem] = useState<'JIRA' | 'ADO'>(draft?.sourceSystem ?? 'JIRA');
+  const [sourceSystem, setSourceSystem] = useState<'JIRA' | 'ADO'>(
+    (teamConfig?.sourceSystem as 'JIRA' | 'ADO') ?? 'JIRA'
+  );
   const [sprintId, setSprintId] = useState<string>(draft?.sprintId ?? '');
   const [summary, setSummary] = useState<TeamSummary | null>(null);
 
   useEffect(() => {
-    if (teamConfig?.sourceSystem && !draft?.sourceSystem) {
+    if (teamConfig?.sourceSystem) {
       setSourceSystem(teamConfig.sourceSystem as 'JIRA' | 'ADO');
     }
   }, [teamConfig?.sourceSystem]);
@@ -424,9 +428,16 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
   }, [teamId]);
 
   useEffect(() => {
-    saveDraft({ sourceSystem, sourceId, taskType, sprintId, criteria });
+    saveDraft({ sourceSystem, sourceId, taskType, sprintId, criteria, pbiTitle, pbiDesc, autoFilledKeys });
   }, [sourceSystem, sourceId, taskType, sprintId, criteria]);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showSourcePanel, setShowSourcePanel] = useState(false);
+  const [showAnalyzePanel, setShowAnalyzePanel] = useState(false);
+  const [pbiTitle, setPbiTitle] = useState<string>(draft?.pbiTitle ?? '');
+  const [pbiDesc, setPbiDesc] = useState<string>(draft?.pbiDesc ?? '');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState('');
+  const [autoFilledKeys, setAutoFilledKeys] = useState<Record<string, 'regex' | 'llm'>>(draft?.autoFilledKeys ?? {});
 
   const activeCriteria = CRITERIA_BY_TASK_TYPE[taskType] ?? [];
 
@@ -481,11 +492,34 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
     setSprintId('');
     setActiveBaseline(null);
     setBaselineDirty(false);
+    setPbiTitle('');
+    setPbiDesc('');
+    setAutoFilledKeys({});
     localStorage.removeItem(DRAFT_KEY);
   }
 
+  async function handleAnalyze() {
+    if (!pbiTitle.trim()) { setAnalyzeError('PBI başlığı gerekli'); return; }
+    setAnalyzing(true);
+    setAnalyzeError('');
+    try {
+      const { data } = await api.post('/analyze-text', { title: pbiTitle.trim(), description: pbiDesc.trim() || undefined });
+      if (data.detectedTaskType) {
+        setTaskType(data.detectedTaskType as TaskType);
+        setCriteria({ teamMemberCount: { type: 'count', value: 1 } });
+      }
+      if (Object.keys(data.suggestedCriteria).length > 0) {
+        setCriteria(prev => ({ ...prev, ...data.suggestedCriteria }));
+        setAutoFilledKeys(data.sources ?? {});
+      }
+    } catch (e: any) {
+      setAnalyzeError(e.response?.data?.error || e.message);
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
   async function handleEstimate() {
-    if (!sourceId.trim()) { setError('İş Kalemi numarası gerekli'); return; }
     if (!canEstimate) { setError('En az 3 kriter doldurulmalı'); return; }
     setLoading(true);
     setError('');
@@ -575,46 +609,105 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
         </div>
       )}
 
-      {/* Form alanları — 4 eşit sütun */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', alignItems: 'flex-end' }}>
-        <label style={{ flex: 1 }}>Kaynak Sistem
-          <select value={sourceSystem} onChange={e => handleSourceSystemChange(e.target.value as 'JIRA' | 'ADO')}>
-            <option value="JIRA">JIRA</option>
-            <option value="ADO">Azure DevOps</option>
-          </select>
-        </label>
-        <label style={{ flex: 1 }}>İş Kalemi No
-          <input value={sourceId} onChange={e => setSourceId(e.target.value)} placeholder="PROJ-123" />
-        </label>
-        <label style={{ flex: 1 }}>Sprint (isteğe bağlı)
-          <input value={sprintId} onChange={e => setSprintId(e.target.value)} placeholder="Sprint-42" />
-        </label>
-        <label style={{ flex: 1 }}>Görev Tipi
+      {/* PBI Metin Analizi */}
+      <div style={{ marginBottom: '0.5rem' }}>
+        <button
+          onClick={() => setShowAnalyzePanel(p => !p)}
+          style={{ background: 'none', border: '1px solid #334155', borderRadius: '6px', color: '#64748b', fontSize: '0.78rem', padding: '0.3rem 0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+        >
+          <span style={{ fontSize: '0.65rem' }}>{showAnalyzePanel ? '▲' : '▼'}</span>
+          Metinden Otomatik Doldur
+          {Object.keys(autoFilledKeys).length > 0 && (
+            <span style={{ color: '#6ee7b7', marginLeft: '4px' }}>· {Object.keys(autoFilledKeys).length} kriter dolduruldu</span>
+          )}
+        </button>
+        {showAnalyzePanel && (
+          <div style={{ marginTop: '0.6rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <input
+                value={pbiTitle}
+                onChange={e => setPbiTitle(e.target.value)}
+                placeholder="PBI başlığı (zorunlu)"
+              />
+              <textarea
+                value={pbiDesc}
+                onChange={e => setPbiDesc(e.target.value)}
+                placeholder="Açıklama / acceptance criteria (isteğe bağlı)"
+                rows={2}
+                style={{ resize: 'vertical', padding: '0.5rem', border: '1px solid #334155', borderRadius: '6px', background: '#1e293b', color: '#e2e8f0', fontFamily: 'inherit', fontSize: '0.85rem' }}
+              />
+              {analyzeError && <div style={{ fontSize: '0.78rem', color: '#fca5a5' }}>{analyzeError}</div>}
+            </div>
+            <button
+              onClick={handleAnalyze}
+              disabled={analyzing || !pbiTitle.trim()}
+              className="primary"
+              style={{ flexShrink: 0, alignSelf: 'flex-start' }}
+            >
+              {analyzing ? 'Analiz ediliyor...' : 'Analiz Et'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Collapsible kaynak panel */}
+      <div style={{ marginBottom: '0.75rem' }}>
+        <button
+          onClick={() => setShowSourcePanel(p => !p)}
+          style={{ background: 'none', border: '1px solid #334155', borderRadius: '6px', color: '#64748b', fontSize: '0.78rem', padding: '0.3rem 0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+        >
+          <span style={{ fontSize: '0.65rem' }}>{showSourcePanel ? '▲' : '▼'}</span>
+          Kaynak Sistem / İş Kalemi / Sprint
+          {(sourceId || sprintId) && (
+            <span style={{ color: '#38bdf8', marginLeft: '4px' }}>
+              {[sourceId, sprintId].filter(Boolean).join(' · ')}
+            </span>
+          )}
+        </button>
+        {showSourcePanel && (
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.6rem', alignItems: 'flex-end' }}>
+            <label style={{ flex: 1 }}>Kaynak Sistem
+              <select value={sourceSystem} onChange={e => handleSourceSystemChange(e.target.value as 'JIRA' | 'ADO')}>
+                <option value="JIRA">JIRA</option>
+                <option value="ADO">Azure DevOps</option>
+              </select>
+            </label>
+            <label style={{ flex: 1 }}>İş Kalemi No
+              <input value={sourceId} onChange={e => setSourceId(e.target.value)} placeholder="PROJ-123" />
+            </label>
+            <label style={{ flex: 1 }}>Sprint (isteğe bağlı)
+              <input value={sprintId} onChange={e => setSprintId(e.target.value)} placeholder="Sprint-42" />
+            </label>
+          </div>
+        )}
+      </div>
+
+      {/* Görev Tipi + Aksiyon butonları — tek satır */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', alignItems: 'flex-end' }}>
+        <label style={{ flex: '0 0 220px' }}>Görev Tipi
           <select value={taskType} onChange={e => { setTaskType(e.target.value as TaskType); setCriteria({ teamMemberCount: { type: 'count', value: 1 } }); setResult(null); }}>
             {TASK_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </label>
-      </div>
-
-      {/* Aksiyon butonları */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', alignItems: 'center' }}>
-        <button onClick={handleEstimate} disabled={loading || !canEstimate} className="primary">
-          {loading ? 'Hesaplanıyor...' : 'Tahmin Et'}
-        </button>
-        <button onClick={handleReset}>Temizle</button>
-        {activeBaseline && (
-          <span style={{ fontSize: '0.75rem', background: baselineDirty ? '#1c1917' : '#0c1e35', color: baselineDirty ? '#fbbf24' : '#38bdf8', border: `1px solid ${baselineDirty ? '#78350f' : '#0369a1'}`, borderRadius: '5px', padding: '0.25rem 0.6rem' }}>
-            {baselineDirty ? '✎ Baz iş değiştirildi' : `Baz iş: ${activeBaseline.title} (${activeBaseline.storyPoints} SP)`}
-          </span>
-        )}
-        <button onClick={() => setShowTemplates(!showTemplates)} style={{ color: '#38bdf8' }}>
-          {showTemplates ? 'Kapat' : 'Şablonlar'}
-        </button>
-{!canEstimate && (
-          <span style={{ fontSize: '0.78rem', color: '#475569', marginLeft: '0.25rem' }}>
-            En az 3 kriter doldur ({nonBooleanFilled}/3)
-          </span>
-        )}
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', paddingBottom: '2px' }}>
+          <button onClick={handleEstimate} disabled={loading || !canEstimate} className="primary">
+            {loading ? 'Hesaplanıyor...' : 'Tahmin Et'}
+          </button>
+          <button onClick={handleReset}>Temizle</button>
+          <button onClick={() => setShowTemplates(!showTemplates)} style={{ color: '#38bdf8' }}>
+            {showTemplates ? 'Kapat' : 'Şablonlar'}
+          </button>
+          {activeBaseline && (
+            <span style={{ fontSize: '0.75rem', background: baselineDirty ? '#1c1917' : '#0c1e35', color: baselineDirty ? '#fbbf24' : '#38bdf8', border: `1px solid ${baselineDirty ? '#78350f' : '#0369a1'}`, borderRadius: '5px', padding: '0.25rem 0.6rem' }}>
+              {baselineDirty ? '✎ Baz iş değiştirildi' : `Baz iş: ${activeBaseline.title} (${activeBaseline.storyPoints} SP)`}
+            </span>
+          )}
+          {!canEstimate && (
+            <span style={{ fontSize: '0.78rem', color: '#475569' }}>
+              En az 3 kriter doldur ({nonBooleanFilled}/3)
+            </span>
+          )}
+        </div>
       </div>
 
       {showTemplates && (
@@ -683,48 +776,94 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
           </div>
         )}
       </h3>
-      <div className="criteria-grid">
-        {activeCriteria.map(c => (
-          <div key={c.key} className="criterion">
-            <label>{criteriaLabel(c.key)}</label>
-            <small style={{ color: '#64748b', fontSize: '0.7rem' }}>{criteriaDescription(c.key)}</small>
-            {c.type === 'boolean' ? (
-              <label style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={(criteria[c.key]?.value as boolean) ?? false}
-                  onChange={e => setCriterion(c.key, 'boolean', e.target.checked)}
-                />
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                  {(criteria[c.key]?.value as boolean) ? 'Evet' : 'Hayır'}
-                </span>
-              </label>
-            ) : c.type === 'scale5' ? (
-              <select
-                value={(criteria[c.key]?.value as number) ?? ''}
-                onChange={e => setCriterion(c.key, 'scale5', e.target.value)}
-              >
-                <option value="">Seç...</option>
-                {[1, 2, 3, 4, 5].map(v => <option key={v} value={v}>{getScaleLabel(c.key, v)}</option>)}
-              </select>
-            ) : (
-              <>
-                <CountInput
-                  value={(criteria[c.key]?.value as number) ?? undefined}
-                  defaultValue={c.key === 'teamMemberCount' ? 1 : undefined}
-                  min={c.key === 'teamMemberCount' ? 1 : 0}
-                  max={COUNT_LIMITS[c.key]?.max}
-                  onChange={val => setCriterion(c.key, 'count', val)}
-                />
-                {COUNT_LIMITS[c.key]?.hint && (
-                  <span style={{ fontSize: '0.7rem', color: '#475569', marginTop: '2px' }}>
-                    {COUNT_LIMITS[c.key]!.hint}
-                  </span>
+      <div className="criteria-list" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', overflow: 'hidden' }}>
+        {activeCriteria.map((c, i) => {
+          const selectedVal = criteria[c.key]?.value;
+          const col = i % 2;
+          const row = Math.floor(i / 2);
+          const totalRows = Math.ceil(activeCriteria.length / 2);
+          const isLastRow = row === totalRows - 1;
+          const isLastAndAlone = i === activeCriteria.length - 1 && activeCriteria.length % 2 !== 0;
+          return (
+            <div key={c.key}
+              className={`criteria-row${col === 0 ? ' left-col' : ''}${isLastRow ? ' last-row' : ''}`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.55rem 0.9rem',
+                gridColumn: isLastAndAlone ? 'span 2' : undefined,
+                minWidth: 0,
+              }}>
+              {/* Sol: etiket */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="criterion-name" style={{ fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  {criteriaLabel(c.key)}
+                  {autoFilledKeys[c.key] && (
+                    <span style={{ fontSize: '0.62rem', background: autoFilledKeys[c.key] === 'llm' ? '#052e16' : '#0c2540', color: autoFilledKeys[c.key] === 'llm' ? '#6ee7b7' : '#38bdf8', border: `1px solid ${autoFilledKeys[c.key] === 'llm' ? '#166534' : '#0369a1'}`, borderRadius: '3px', padding: '0 4px', flexShrink: 0 }}>
+                      {autoFilledKeys[c.key] === 'llm' ? 'AI' : 'auto'}
+                    </span>
+                  )}
+                </div>
+                <div className="criterion-desc" style={{ fontSize: '0.67rem', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {criteriaDescription(c.key)}
+                  {c.type === 'count' && COUNT_LIMITS[c.key]?.hint && (
+                    <span style={{ marginLeft: '4px' }}>· {COUNT_LIMITS[c.key]!.hint}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Sağ: input — hep sağa dayalı */}
+              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {c.type === 'scale5' && [1, 2, 3, 4, 5].map(v => {
+                  const active = selectedVal === v;
+                  return (
+                    <button
+                      key={v}
+                      className={`scale-btn${active ? ' scale-btn-active' : ''}`}
+                      onClick={() => setCriterion(c.key, 'scale5', selectedVal === v ? '' : String(v))}
+                      title={getScaleLabel(c.key, v)}
+                      style={{
+                        width: '28px', height: '28px', borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: active ? 700 : 400,
+                        fontSize: '0.78rem', cursor: 'pointer',
+                        flexShrink: 0, padding: 0,
+                        transition: 'background 0.1s, border-color 0.1s',
+                      }}
+                    >
+                      {v}
+                    </button>
+                  );
+                })}
+
+                {c.type === 'count' && (
+                  <div style={{ width: '80px', flexShrink: 0 }}>
+                    <CountInput
+                      value={(selectedVal as number) ?? undefined}
+                      defaultValue={c.key === 'teamMemberCount' ? 1 : undefined}
+                      min={c.key === 'teamMemberCount' ? 1 : 0}
+                      max={COUNT_LIMITS[c.key]?.max}
+                      onChange={val => setCriterion(c.key, 'count', val)}
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
                 )}
-              </>
-            )}
-          </div>
-        ))}
+
+                {c.type === 'boolean' && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={(selectedVal as boolean) ?? false}
+                      onChange={e => setCriterion(c.key, 'boolean', e.target.checked)}
+                    />
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', minWidth: '36px' }}>
+                      {(selectedVal as boolean) ? 'Evet' : 'Hayır'}
+                    </span>
+                  </label>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {error && <div className="error">{error}</div>}

@@ -1,9 +1,9 @@
 export const estimateBodySchema = {
   type: 'object',
-  required: ['sourceSystem', 'sourceId', 'teamId'],
+  required: ['sourceSystem', 'teamId'],
   properties: {
     sourceSystem: { type: 'string', enum: ['JIRA', 'ADO'] },
-    sourceId: { type: 'string', minLength: 1 },
+    sourceId: { type: 'string' },
     teamId: { type: 'string', format: 'uuid' },
     taskType: {
       type: 'string',

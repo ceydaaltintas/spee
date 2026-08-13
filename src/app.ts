@@ -9,6 +9,7 @@ import { webhookRoutes } from './api/routes/webhooks.routes.js';
 import { historyRoutes } from './api/routes/history.routes.js';
 import { calibrateRoutes } from './api/routes/calibrate.routes.js';
 import { baselineRoutes } from './api/routes/baseline.routes.js';
+import { analyzeRoutes } from './api/routes/analyze.routes.js';
 
 export function buildApp() {
   const app = Fastify({ logger: env.NODE_ENV !== 'test' });
@@ -27,6 +28,7 @@ export function buildApp() {
   app.register(historyRoutes, { prefix: '/api/v1' });
   app.register(calibrateRoutes, { prefix: '/api/v1' });
   app.register(baselineRoutes, { prefix: '/api/v1' });
+  app.register(analyzeRoutes, { prefix: '/api/v1' });
 
   app.get('/health', { config: { skipAuth: true } }, async () => ({ status: 'ok' }));
 
