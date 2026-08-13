@@ -5,16 +5,6 @@ import { TASK_TYPE_LABELS } from '../api/labels';
 
 type TaskType = 'USER_STORY' | 'BUG' | 'ANALYSIS' | 'TEST_TASK' | 'DESIGN' | 'DEVOPS' | 'SPIKE' | 'SUB_TASK';
 
-const TASK_TYPES: { value: TaskType; label: string }[] = [
-  { value: 'USER_STORY', label: 'Kullanıcı Hikâyesi' },
-  { value: 'BUG', label: 'Hata' },
-  { value: 'ANALYSIS', label: 'Analiz' },
-  { value: 'TEST_TASK', label: 'Test Görevi' },
-  { value: 'DESIGN', label: 'Tasarım' },
-  { value: 'DEVOPS', label: 'DevOps' },
-  { value: 'SPIKE', label: 'Spike' },
-  { value: 'SUB_TASK', label: 'Alt Görev' },
-];
 
 interface BulkRow {
   title: string;
