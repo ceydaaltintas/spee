@@ -45,9 +45,13 @@ Kriterlerin açıklamaları:
 
 Sadece metinden çıkarılabilecek değerleri döndür. Emin olmadıklarını döndürme.
 
+detectedTaskType için YALNIZCA şu değerlerden birini kullan (başka hiçbir şey yazma):
+USER_STORY, BUG, ANALYSIS, TEST_TASK, DESIGN, DEVOPS, SPIKE, SUB_TASK
+Emin değilsen null yaz.
+
 Yanıtını SADECE JSON olarak ver, başka hiçbir şey yazma:
 {
-  "detectedTaskType": "USER_STORY|BUG|ANALYSIS|TEST_TASK|DESIGN|DEVOPS|SPIKE|SUB_TASK|null",
+  "detectedTaskType": "USER_STORY",
   "criteria": {
     "technicalComplexity": 3,
     "scopeClarity": 2,
