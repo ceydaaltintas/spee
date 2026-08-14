@@ -685,7 +685,20 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
       {/* Görev Tipi + Aksiyon butonları — tek satır */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', alignItems: 'flex-end' }}>
         <label style={{ flex: '0 0 220px' }}>Görev Tipi
-          <select value={taskType} onChange={e => { setTaskType(e.target.value as TaskType); setCriteria({ teamMemberCount: { type: 'count', value: 1 } }); setResult(null); }}>
+          <select value={taskType} onChange={e => {
+  const newType = e.target.value as TaskType;
+  const newKeys = new Set((CRITERIA_BY_TASK_TYPE[newType] ?? []).map(c => c.key));
+  setTaskType(newType);
+  setCriteria(prev => {
+    const kept: typeof prev = { teamMemberCount: { type: 'count', value: 1 } };
+    for (const [k, v] of Object.entries(prev)) {
+      if (newKeys.has(k)) kept[k] = v;
+    }
+    return kept;
+  });
+  setAutoFilledKeys(prev => Object.fromEntries(Object.entries(prev).filter(([k]) => newKeys.has(k))));
+  setResult(null);
+}}>
             {TASK_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </label>
