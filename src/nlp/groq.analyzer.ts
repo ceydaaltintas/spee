@@ -108,8 +108,10 @@ export async function analyzeText(title: string, description?: string): Promise<
 
     const parsed = JSON.parse(content);
 
-    const detectedTaskType = parsed.detectedTaskType && parsed.detectedTaskType !== 'null'
-      ? parsed.detectedTaskType
+    const VALID_TASK_TYPES = new Set(['USER_STORY', 'BUG', 'ANALYSIS', 'TEST_TASK', 'DESIGN', 'DEVOPS', 'SPIKE', 'SUB_TASK']);
+    const rawDetected = parsed.detectedTaskType;
+    const detectedTaskType = rawDetected && rawDetected !== 'null' && VALID_TASK_TYPES.has(rawDetected)
+      ? rawDetected
       : signals.detectedTaskType;
 
     const SCALE5_KEYS = ['technicalComplexity', 'scopeClarity', 'techDebtRisk', 'domainKnowledge',
