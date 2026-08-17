@@ -18,6 +18,7 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [editingSP, setEditingSP] = useState<Record<string, string>>({});
+  const [completionMap, setCompletionMap] = useState<Record<string, boolean | null>>({});
 
   const offsetRef = useRef(0);
 
@@ -37,6 +38,17 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
       const { data } = await api.get<{ estimations: Item[]; total: number }>(`/history/${teamId}?${params}`);
       setTotal(data.total);
       setItems(prev => replace ? data.estimations : [...prev, ...data.estimations]);
+      if (replace) {
+        const map: Record<string, boolean | null> = {};
+        data.estimations.forEach((e: Item) => { map[e.estimationId] = e.outcome?.completedInSprint ?? null; });
+        setCompletionMap(map);
+      } else {
+        setCompletionMap(prev => {
+          const next = { ...prev };
+          data.estimations.forEach((e: Item) => { next[e.estimationId] = e.outcome?.completedInSprint ?? null; });
+          return next;
+        });
+      }
       offsetRef.current = offset + data.estimations.length;
     } catch {
       if (replace) setItems([]);
@@ -70,6 +82,15 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
       alert(e.response?.data?.error || 'Onay başarısız');
     } finally {
       setApprovingId(null);
+    }
+  }
+
+  async function handleCompletion(estimationId: string, value: boolean | null) {
+    setCompletionMap(prev => ({ ...prev, [estimationId]: value }));
+    try {
+      await api.patch(`/history/${teamId}/${estimationId}/completion`, { completedInSprint: value });
+    } catch {
+      setCompletionMap(prev => ({ ...prev, [estimationId]: completionMap[estimationId] ?? null }));
     }
   }
 
@@ -121,6 +142,18 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
               {items.length} / {total} kayıt gösteriliyor
             </div>
           )}
+          {filterSprint && items.length > 0 && (() => {
+            const completed = items.filter(i => completionMap[i.estimationId] === true).length;
+            const notCompleted = items.filter(i => completionMap[i.estimationId] === false).length;
+            const unmarked = items.length - completed - notCompleted;
+            return (
+              <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                <div className="stat-card"><div className="stat-label">Tamamlandı</div><div className="stat-value" style={{ color: '#6ee7b7' }}>{completed}</div></div>
+                <div className="stat-card"><div className="stat-label">Tamamlanamadı</div><div className="stat-value" style={{ color: '#fca5a5' }}>{notCompleted}</div></div>
+                <div className="stat-card"><div className="stat-label">Belirsiz</div><div className="stat-value" style={{ color: '#94a3b8' }}>{unmarked}</div></div>
+              </div>
+            );
+          })()}
           <table>
             <thead>
               <tr>
@@ -130,12 +163,13 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
                 <th>Önerilen SP</th>
                 <th>Onaylanan SP</th>
                 <th>Güven</th>
+                <th>Durum</th>
                 <th>Tarih</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {items.length === 0 && <tr><td colSpan={8} style={{ color: '#64748b' }}>Kayıt bulunamadı</td></tr>}
+              {items.length === 0 && <tr><td colSpan={9} style={{ color: '#64748b' }}>Kayıt bulunamadı</td></tr>}
               {items.map(item => (
                 <tr key={item.estimationId}>
                   <td>
@@ -173,6 +207,17 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
                     )}
                   </td>
                   <td>%{(item.confidenceScore * 100).toFixed(0)}</td>
+                  <td>
+                    <select
+                      value={completionMap[item.estimationId] === true ? 'true' : completionMap[item.estimationId] === false ? 'false' : ''}
+                      onChange={e => handleCompletion(item.estimationId, e.target.value === '' ? null : e.target.value === 'true')}
+                      style={{ fontSize: '0.78rem', padding: '2px 4px', background: completionMap[item.estimationId] === true ? '#052e16' : completionMap[item.estimationId] === false ? '#2d0a0a' : undefined, color: completionMap[item.estimationId] === true ? '#6ee7b7' : completionMap[item.estimationId] === false ? '#fca5a5' : '#64748b' }}
+                    >
+                      <option value="">—</option>
+                      <option value="true">✓ Tamamlandı</option>
+                      <option value="false">✗ Tamamlanamadı</option>
+                    </select>
+                  </td>
                   <td style={{ fontSize: '0.8rem', color: '#64748b' }}>
                     {new Date(item.createdAt).toLocaleDateString('tr-TR')}
                   </td>

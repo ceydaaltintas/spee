@@ -139,6 +139,41 @@ export async function historyRoutes(app: FastifyInstance) {
     return reply.status(200).send({ estimationId, approvedSP });
   });
 
+  app.patch<{ Params: { teamId: string; estimationId: string }; Body: { completedInSprint: boolean | null } }>(
+    '/history/:teamId/:estimationId/completion',
+    async (request, reply) => {
+      const { teamId, estimationId } = request.params;
+      const { completedInSprint } = request.body;
+
+      const estimation = await prisma.estimationResult.findUnique({ where: { id: estimationId } });
+      if (!estimation || estimation.teamId !== teamId) {
+        return reply.status(404).send({ error: 'Tahmin bulunamadı' });
+      }
+
+      if (completedInSprint === null) {
+        await prisma.actualOutcome.deleteMany({ where: { estimationResultId: estimationId } });
+      } else {
+        const sprintId = estimation.sprintId ?? `sprint-auto-${new Date().toISOString().slice(0, 7)}`;
+        await prisma.actualOutcome.upsert({
+          where: { estimationResultId: estimationId },
+          update: { completedInSprint },
+          create: {
+            id: `ao-${estimationId}`,
+            estimationResultId: estimationId,
+            teamId,
+            sprintId,
+            plannedSP: estimation.approvedSP ?? estimation.suggestedSP,
+            completedInSprint,
+            reopenCount: 0,
+            spilloverCount: 0,
+          },
+        });
+      }
+
+      return reply.status(200).send({ estimationId, completedInSprint });
+    },
+  );
+
   app.delete<{ Params: DeleteParams }>('/history/:teamId/:estimationId', async (request, reply) => {
     const { teamId, estimationId } = request.params;
 
