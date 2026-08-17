@@ -108,8 +108,9 @@ export async function analyzeText(title: string, description?: string): Promise<
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: `${SYSTEM_PROMPT}\n\n${userMessage}` }] }],
-            generationConfig: { responseMimeType: 'application/json', temperature: 0.1, maxOutputTokens: 400 },
+            system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+            generationConfig: { responseMimeType: 'application/json', temperature: 0.1, maxOutputTokens: 500 },
           }),
         },
       );
@@ -120,11 +121,15 @@ export async function analyzeText(title: string, description?: string): Promise<
       }
       const json = await res.json() as any;
       const content = json.candidates?.[0]?.content?.parts?.[0]?.text;
-      console.log(`[gemini] content preview: ${String(content ?? 'null').slice(0, 100)}`);
-      if (!content) return null;
+      if (!content) { console.warn('[gemini] empty content'); return null; }
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return null;
-      try { return JSON.parse(jsonMatch[0]); } catch { return null; }
+      if (!jsonMatch) { console.warn('[gemini] no JSON in response'); return null; }
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        const criteriaCount = Object.keys(parsed.criteria ?? {}).length;
+        console.log(`[gemini] ok — type=${parsed.detectedTaskType} criteria=${criteriaCount}`);
+        return parsed;
+      } catch { console.warn('[gemini] JSON parse failed'); return null; }
     }
 
     async function callGroq(model: string): Promise<any> {
