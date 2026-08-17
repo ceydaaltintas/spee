@@ -19,12 +19,16 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [editingSP, setEditingSP] = useState<Record<string, string>>({});
   const [completionMap, setCompletionMap] = useState<Record<string, boolean | null>>({});
+  const [sprintStats, setSprintStats] = useState<{ sprints: { sprintId: string; plannedSP: number; completedSP: number; notCompletedSP: number }[]; avgCompletedSP: number | null } | null>(null);
 
   const offsetRef = useRef(0);
 
   useEffect(() => {
     offsetRef.current = 0;
     loadHistory(0, true);
+    api.get<{ sprints: any[]; avgCompletedSP: number | null }>(`/history/${teamId}/sprint-stats`)
+      .then(r => setSprintStats(r.data))
+      .catch(() => {});
   }, [teamId, filterType]);
 
   async function loadHistory(offset: number, replace: boolean) {
@@ -143,17 +147,28 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
             </div>
           )}
           {filterSprint && items.length > 0 && (() => {
-            const completed = items.filter(i => completionMap[i.estimationId] === true).length;
-            const notCompleted = items.filter(i => completionMap[i.estimationId] === false).length;
-            const unmarked = items.length - completed - notCompleted;
+            const sprintStat = sprintStats?.sprints.find(s => s.sprintId === filterSprint.trim());
+            const completedCount = items.filter(i => completionMap[i.estimationId] === true).length;
+            const notCompletedCount = items.filter(i => completionMap[i.estimationId] === false).length;
+            const unmarkedCount = items.length - completedCount - notCompletedCount;
+            const completionRate = (completedCount + notCompletedCount) > 0
+              ? Math.round(completedCount / (completedCount + notCompletedCount) * 100) : null;
             return (
               <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-                <div className="stat-card"><div className="stat-label">Tamamlandı</div><div className="stat-value" style={{ color: '#6ee7b7' }}>{completed}</div></div>
-                <div className="stat-card"><div className="stat-label">Tamamlanamadı</div><div className="stat-value" style={{ color: '#fca5a5' }}>{notCompleted}</div></div>
-                <div className="stat-card"><div className="stat-label">Belirsiz</div><div className="stat-value" style={{ color: '#94a3b8' }}>{unmarked}</div></div>
+                <div className="stat-card"><div className="stat-label">Planlanan SP</div><div className="stat-value">{sprintStat?.plannedSP ?? '—'}</div></div>
+                <div className="stat-card"><div className="stat-label">Tamamlanan SP</div><div className="stat-value" style={{ color: '#6ee7b7' }}>{sprintStat?.completedSP ?? '—'}</div></div>
+                <div className="stat-card"><div className="stat-label">Tamamlanamayan SP</div><div className="stat-value" style={{ color: '#fca5a5' }}>{sprintStat?.notCompletedSP ?? '—'}</div></div>
+                {completionRate !== null && <div className="stat-card"><div className="stat-label">Tamamlanma</div><div className="stat-value" style={{ color: completionRate >= 70 ? '#6ee7b7' : completionRate >= 40 ? '#fbbf24' : '#fca5a5' }}>%{completionRate}</div></div>}
+                <div className="stat-card"><div className="stat-label">Belirsiz PBI</div><div className="stat-value" style={{ color: '#94a3b8' }}>{unmarkedCount}</div></div>
               </div>
             );
           })()}
+          {!filterSprint && sprintStats && sprintStats.sprints.length > 1 && (
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+              <div className="stat-card"><div className="stat-label">Sprint Sayısı</div><div className="stat-value">{sprintStats.sprints.length}</div></div>
+              {sprintStats.avgCompletedSP !== null && <div className="stat-card"><div className="stat-label">Ort. Velocity</div><div className="stat-value" style={{ color: '#38bdf8' }}>{sprintStats.avgCompletedSP} SP</div></div>}
+            </div>
+          )}
           <table>
             <thead>
               <tr>

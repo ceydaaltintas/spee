@@ -118,6 +118,44 @@ export async function historyRoutes(app: FastifyInstance) {
     return reply.status(200).send({ total, approved, pending, meanError, direction });
   });
 
+  app.get<{ Params: HistoryParams }>('/history/:teamId/sprint-stats', async (request, reply) => {
+    const { teamId } = request.params;
+
+    const estimations = await prisma.estimationResult.findMany({
+      where: { teamId, sprintId: { not: null } },
+      select: {
+        sprintId: true,
+        suggestedSP: true,
+        approvedSP: true,
+        outcome: { select: { completedInSprint: true } },
+      },
+    });
+
+    const sprintMap = new Map<string, { plannedSP: number; completedSP: number; notCompletedSP: number; unmarkedSP: number }>();
+
+    for (const e of estimations) {
+      const key = e.sprintId!;
+      if (!sprintMap.has(key)) sprintMap.set(key, { plannedSP: 0, completedSP: 0, notCompletedSP: 0, unmarkedSP: 0 });
+      const stat = sprintMap.get(key)!;
+      const sp = e.approvedSP ?? e.suggestedSP;
+      stat.plannedSP += sp;
+      if (e.outcome?.completedInSprint === true) stat.completedSP += sp;
+      else if (e.outcome?.completedInSprint === false) stat.notCompletedSP += sp;
+      else stat.unmarkedSP += sp;
+    }
+
+    const sprints = Array.from(sprintMap.entries())
+      .map(([sprintId, s]) => ({ sprintId, ...s }))
+      .sort((a, b) => a.sprintId.localeCompare(b.sprintId));
+
+    const sprintsWithData = sprints.filter(s => s.completedSP > 0 || s.notCompletedSP > 0);
+    const avgCompletedSP = sprintsWithData.length > 0
+      ? Math.round(sprintsWithData.reduce((sum, s) => sum + s.completedSP, 0) / sprintsWithData.length)
+      : null;
+
+    return reply.status(200).send({ sprints, avgCompletedSP });
+  });
+
   app.patch<{ Params: ApproveParams; Body: ApproveBody }>('/history/:teamId/:estimationId/approve', async (request, reply) => {
     const { teamId, estimationId } = request.params;
     const { approvedSP } = request.body;
