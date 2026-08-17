@@ -93,7 +93,7 @@ export async function analyzeText(title: string, description?: string): Promise<
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'qwen/qwen3.6-27b',
+        model: 'openai/gpt-oss-20b',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userMessage },
@@ -110,7 +110,10 @@ export async function analyzeText(title: string, description?: string): Promise<
     const content = json.choices?.[0]?.message?.content;
     if (!content) throw new Error('Empty response');
 
-    const parsed = JSON.parse(content);
+    // JSON bloğunu çıkar (model bazen ```json ... ``` içinde döndürebilir)
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in response');
+    const parsed = JSON.parse(jsonMatch[0]);
 
     const VALID_TASK_TYPES = new Set(['USER_STORY', 'BUG', 'ANALYSIS', 'TEST_TASK', 'DESIGN', 'DEVOPS', 'SPIKE', 'SUB_TASK']);
     const rawDetected = parsed.detectedTaskType;
