@@ -29,33 +29,39 @@ export interface AnalyzeTextResult {
   groqAvailable: boolean;
 }
 
-const SYSTEM_PROMPT = `Sen bir yazılım geliştirme uzmanısın. Kullanıcı sana bir PBI (Product Backlog Item) başlığı ve açıklaması verecek.
-Sen bu metni analiz edip aşağıdaki kriterleri 1-5 ölçeğinde veya sayısal/boolean olarak tahmin edeceksin.
+const SYSTEM_PROMPT = `Sen bir yazılım geliştirme uzmanısın. Sana verilen PBI başlığı ve açıklamasını analiz edeceksin.
 
-Kriterlerin açıklamaları:
-- technicalComplexity: 1=basit, 5=çok karmaşık
-- scopeClarity: 1=çok net, 5=belirsiz
-- techDebtRisk: 1=temiz kod, 5=borç yığını
-- domainKnowledge: 1=kimse bilmiyor, 5=takım uzman
-- testLoad: 1=az test yeter, 5=kapsamlı test gerek
-- integrationPoints: kaç dış servis/API ile konuşuyor (sayı)
-- affectedModuleCount: kaç modül etkilenecek (sayı)
-- hasSecurityConstraint: güvenlik kısıtı var mı (true/false)
-- hasPerformanceConstraint: performans kısıtı var mı (true/false)
+GÖREV: Aşağıdaki kriterlerin HEPSİNİ metinden çıkarmaya çalış. Emin olduğun her kriter için değer ver.
 
-Sadece metinden çıkarılabilecek değerleri döndür. Emin olmadıklarını döndürme.
+KRİTERLER (mümkün olduğunca çoğunu doldur):
+- technicalComplexity: 1=basit CRUD, 2=orta, 3=karmaşık mantık, 4=çok karmaşık, 5=araştırma gerektirir
+- scopeClarity: 1=kristal net, 2=açık, 3=bazı belirsizlikler, 4=belirsiz, 5=tamamen muğlak
+- techDebtRisk: 1=temiz tasarım, 2=az risk, 3=orta risk, 4=yüksek borç riski, 5=legacy cehennem
+- domainKnowledge: 1=basit domain, 2=öğrenilebilir, 3=orta uzmanlık, 4=derin bilgi, 5=nadir uzmanlık
+- testLoad: 1=birim test yeter, 2=birkaç test, 3=orta, 4=kapsamlı test, 5=çok boyutlu test
+- integrationPoints: metinde geçen dış servis/API/sistem sayısı (0, 1, 2, 3...)
+- affectedModuleCount: etkilenecek modül/bileşen tahmini (1, 2, 3...)
+- hasSecurityConstraint: metinde güvenlik/auth/yetki/şifre/token söz konusu mu (true/false)
+- hasPerformanceConstraint: metinde hız/performans/gecikme/cache/ölçeklendirme söz konusu mu (true/false)
 
-detectedTaskType için YALNIZCA şu değerlerden birini kullan (başka hiçbir şey yazma):
-USER_STORY, BUG, ANALYSIS, TEST_TASK, DESIGN, DEVOPS, SPIKE, SUB_TASK
+detectedTaskType için YALNIZCA şunlardan birini seç:
+USER_STORY (kullanıcı değeri sunan özellik), BUG (hata düzeltme), ANALYSIS (araştırma/analiz),
+TEST_TASK (test yazımı), DESIGN (tasarım/UX), DEVOPS (altyapı/CI-CD), SPIKE (teknik araştırma), SUB_TASK (alt görev)
 Emin değilsen null yaz.
 
-Yanıtını SADECE JSON olarak ver, başka hiçbir şey yazma:
+ÇIKTI: SADECE JSON, başka hiçbir şey yazma:
 {
   "detectedTaskType": "USER_STORY",
   "criteria": {
     "technicalComplexity": 3,
     "scopeClarity": 2,
-    "hasSecurityConstraint": true
+    "techDebtRisk": 2,
+    "domainKnowledge": 3,
+    "testLoad": 3,
+    "integrationPoints": 2,
+    "affectedModuleCount": 3,
+    "hasSecurityConstraint": true,
+    "hasPerformanceConstraint": false
   }
 }`;
 
@@ -93,7 +99,7 @@ export async function analyzeText(title: string, description?: string): Promise<
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-oss-20b',
+        model: 'openai/gpt-oss-120b',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userMessage },
