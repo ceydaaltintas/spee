@@ -92,25 +92,31 @@ export async function analyzeText(title: string, description?: string): Promise<
   try {
     const userMessage = `Başlık: ${title}\nAçıklama: ${description ?? '(yok)'}`;
 
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${env.GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: userMessage },
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.1,
-        max_tokens: 300,
-      }),
-    });
-
-    if (!res.ok) throw new Error(`Groq API error: ${res.status}`);
+    // Sırayla dene: önce daha güçlü model, fail ederse fallback
+    const MODELS = ['openai/gpt-oss-20b', 'groq/compound'];
+    let res: Response | null = null;
+    for (const model of MODELS) {
+      const attempt = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${env.GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: userMessage },
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.1,
+          max_tokens: 400,
+        }),
+      });
+      if (attempt.ok) { res = attempt; break; }
+      console.warn(`[groq] model=${model} failed with ${attempt.status}, trying next`);
+    }
+    if (!res) throw new Error('All Groq models failed');
 
     const json = await res.json() as any;
     const content = json.choices?.[0]?.message?.content;
