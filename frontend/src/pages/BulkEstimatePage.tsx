@@ -251,7 +251,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
           &nbsp; Opsiyonel: <code style={{ background: '#0f172a', padding: '1px 5px', borderRadius: '3px' }}>açıklama</code>
           <code style={{ background: '#0f172a', padding: '1px 5px', borderRadius: '3px', marginLeft: '4px' }}>görev tipi</code>
           <code style={{ background: '#0f172a', padding: '1px 5px', borderRadius: '3px', marginLeft: '4px' }}>sprint</code>
-          <span style={{ marginLeft: '6px' }}>· Bilinmeyen görev tipleri Kullanıcı Hikayesi olarak işlenir · Maks. 50 satır</span>
+          <span style={{ marginLeft: '6px' }}>· sprint serbest metin (ör. Sprint-42) · Bilinmeyen görev tipleri Kullanıcı Hikayesi olarak işlenir · Maks. 50 satır</span>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => fileRef.current?.click()} className="primary">
