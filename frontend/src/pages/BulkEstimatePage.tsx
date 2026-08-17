@@ -10,6 +10,7 @@ interface BulkRow {
   title: string;
   description?: string;
   taskType?: TaskType;
+  sprintId?: string;
 }
 
 interface BulkResult {
@@ -48,10 +49,10 @@ const TASK_TYPE_FROM_TR: Record<string, TaskType> = {
 };
 
 const TEMPLATE_DATA = [
-  ['başlık', 'açıklama', 'görev tipi'],
-  ['Kullanıcı şifre sıfırlama', 'JWT token ile email üzerinden sıfırlama akışı. Güvenlik kısıtları var.', 'Kullanıcı Hikayesi'],
-  ['Login hata mesajı düzeltme', 'Yanlış şifre girildiğinde ekran boş kalıyor', 'Hata'],
-  ['Ödeme entegrasyon analizi', 'Stripe ve iyzico karşılaştırması yapılacak', 'Analiz'],
+  ['başlık', 'açıklama', 'görev tipi', 'sprint'],
+  ['Kullanıcı şifre sıfırlama', 'JWT token ile email üzerinden sıfırlama akışı. Güvenlik kısıtları var.', 'Kullanıcı Hikayesi', 'Sprint-42'],
+  ['Login hata mesajı düzeltme', 'Yanlış şifre girildiğinde ekran boş kalıyor', 'Hata', 'Sprint-42'],
+  ['Ödeme entegrasyon analizi', 'Stripe ve iyzico karşılaştırması yapılacak', 'Analiz', ''],
 ];
 
 const TASK_TYPE_NOTES = [
@@ -69,7 +70,7 @@ const TASK_TYPE_NOTES = [
 function downloadTemplate() {
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(TEMPLATE_DATA);
-  ws['!cols'] = [{ wch: 40 }, { wch: 60 }, { wch: 20 }];
+  ws['!cols'] = [{ wch: 40 }, { wch: 60 }, { wch: 20 }, { wch: 15 }];
   XLSX.utils.book_append_sheet(wb, ws, 'PBIler');
   const wsNotes = XLSX.utils.aoa_to_sheet(TASK_TYPE_NOTES);
   wsNotes['!cols'] = [{ wch: 25 }];
@@ -149,6 +150,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
               title: String(r['başlık'] ?? r['Başlık'] ?? r['title'] ?? '').trim(),
               description: String(r['açıklama'] ?? r['Açıklama'] ?? r['description'] ?? '').trim() || undefined,
               taskType,
+              sprintId: String(r['sprint'] ?? r['Sprint'] ?? r['sprintId'] ?? '').trim() || undefined,
             };
           })
           .filter(r => r.title.length > 0);
@@ -196,6 +198,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
           sourceId: `bulk-${Date.now()}-${i}`,
           teamId,
           taskType,
+          sprintId: row.sprintId,
           manualCriteria: suggestedCriteria,
         });
 
@@ -247,6 +250,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
           Zorunlu: <code style={{ background: '#0f172a', padding: '1px 5px', borderRadius: '3px' }}>başlık</code>
           &nbsp; Opsiyonel: <code style={{ background: '#0f172a', padding: '1px 5px', borderRadius: '3px' }}>açıklama</code>
           <code style={{ background: '#0f172a', padding: '1px 5px', borderRadius: '3px', marginLeft: '4px' }}>görev tipi</code>
+          <code style={{ background: '#0f172a', padding: '1px 5px', borderRadius: '3px', marginLeft: '4px' }}>sprint</code>
           <span style={{ marginLeft: '6px' }}>· Bilinmeyen görev tipleri Kullanıcı Hikayesi olarak işlenir · Maks. 50 satır</span>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -276,6 +280,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
                 <th>Başlık</th>
                 <th>Açıklama</th>
                 <th>Görev Tipi</th>
+                <th>Sprint</th>
               </tr>
             </thead>
             <tbody>
@@ -290,6 +295,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
                       ? <span style={{ color: '#38bdf8', fontSize: '0.8rem' }}>{TASK_TYPE_LABELS[r.taskType] ?? r.taskType}</span>
                       : <span style={{ color: '#475569', fontSize: '0.8rem' }}>otomatik</span>}
                   </td>
+                  <td style={{ color: '#64748b', fontSize: '0.8rem' }}>{r.sprintId ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
