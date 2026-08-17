@@ -93,8 +93,7 @@ export async function analyzeText(title: string, description?: string): Promise<
   try {
     const userMessage = `Başlık: ${title}\nAçıklama: ${description ?? '(yok)'}`;
 
-    // Sırayla dene: önce daha güçlü model, fail ederse fallback
-    const MODELS = ['openai/gpt-oss-20b', 'groq/compound'];
+    const MODELS = ['groq/compound', 'groq/compound-mini'];
     let res: Response | null = null;
     let usedModel = '';
     for (const model of MODELS) {
