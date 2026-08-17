@@ -110,7 +110,7 @@ export async function analyzeText(title: string, description?: string): Promise<
           body: JSON.stringify({
             system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
             contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 500 },
+            generationConfig: { responseMimeType: 'application/json', temperature: 0.1, maxOutputTokens: 500 },
           }),
         },
       );
@@ -121,10 +121,20 @@ export async function analyzeText(title: string, description?: string): Promise<
       }
       const json = await res.json() as any;
       const content = json.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!content) { console.warn('[gemini] empty content, raw:', JSON.stringify(json).slice(0, 300)); return null; }
-      console.log('[gemini] raw content:', String(content).slice(0, 200));
+      if (!content) {
+        console.warn('[gemini] empty content, candidates:', JSON.stringify(json.candidates).slice(0, 400));
+        return null;
+      }
+      console.log('[gemini] content (first 300):', String(content).slice(0, 300));
+      // JSON mode bazen sadece JSON döndürür, direkt parse dene
+      try {
+        const direct = JSON.parse(content);
+        const criteriaCount = Object.keys(direct.criteria ?? {}).length;
+        console.log(`[gemini] direct parse ok — type=${direct.detectedTaskType} criteria=${criteriaCount}`);
+        return direct;
+      } catch { /* JSON değil, regex ile dene */ }
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) { console.warn('[gemini] no JSON found in:', String(content).slice(0, 200)); return null; }
+      if (!jsonMatch) { console.warn('[gemini] no JSON found in content'); return null; }
       try {
         const parsed = JSON.parse(jsonMatch[0]);
         const criteriaCount = Object.keys(parsed.criteria ?? {}).length;
