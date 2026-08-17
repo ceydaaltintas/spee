@@ -101,7 +101,7 @@ export async function analyzeText(title: string, description?: string): Promise<
     const VALID_TASK_TYPES = new Set(['USER_STORY', 'BUG', 'ANALYSIS', 'TEST_TASK', 'DESIGN', 'DEVOPS', 'SPIKE', 'SUB_TASK']);
 
     async function callGemini(): Promise<any> {
-      if (!env.GEMINI_API_KEY) return null;
+      if (!env.GEMINI_API_KEY) { console.warn('[gemini] no API key'); return null; }
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GEMINI_API_KEY}`,
         {
@@ -113,9 +113,14 @@ export async function analyzeText(title: string, description?: string): Promise<
           }),
         },
       );
-      if (!res.ok) { console.warn(`[gemini] failed with ${res.status}`); return null; }
+      if (!res.ok) {
+        const errText = await res.text();
+        console.warn(`[gemini] HTTP ${res.status}: ${errText.slice(0, 200)}`);
+        return null;
+      }
       const json = await res.json() as any;
       const content = json.candidates?.[0]?.content?.parts?.[0]?.text;
+      console.log(`[gemini] content preview: ${String(content ?? 'null').slice(0, 100)}`);
       if (!content) return null;
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) return null;
