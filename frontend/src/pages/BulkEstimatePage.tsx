@@ -199,7 +199,10 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
           teamId,
           taskType,
           sprintId: row.sprintId,
-          manualCriteria: suggestedCriteria,
+          manualCriteria: {
+            teamMemberCount: { type: 'count', value: 1 },
+            ...suggestedCriteria,
+          },
         });
 
         out.push({
