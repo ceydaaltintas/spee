@@ -229,7 +229,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
 
       setProgress(i + 1);
       // Groq rate limit için küçük bekleme
-      if (i < rows.length - 1) await new Promise(r => setTimeout(r, 2000));
+      if (i < rows.length - 1) await new Promise(r => setTimeout(r, 300));
     }
 
     setResults(out);
