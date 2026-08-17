@@ -110,7 +110,7 @@ export async function analyzeText(title: string, description?: string): Promise<
           body: JSON.stringify({
             system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
             contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-            generationConfig: { responseMimeType: 'application/json', temperature: 0.1, maxOutputTokens: 500 },
+            generationConfig: { temperature: 0.1, maxOutputTokens: 500 },
           }),
         },
       );
@@ -121,9 +121,10 @@ export async function analyzeText(title: string, description?: string): Promise<
       }
       const json = await res.json() as any;
       const content = json.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!content) { console.warn('[gemini] empty content'); return null; }
+      if (!content) { console.warn('[gemini] empty content, raw:', JSON.stringify(json).slice(0, 300)); return null; }
+      console.log('[gemini] raw content:', String(content).slice(0, 200));
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) { console.warn('[gemini] no JSON in response'); return null; }
+      if (!jsonMatch) { console.warn('[gemini] no JSON found in:', String(content).slice(0, 200)); return null; }
       try {
         const parsed = JSON.parse(jsonMatch[0]);
         const criteriaCount = Object.keys(parsed.criteria ?? {}).length;
