@@ -94,10 +94,15 @@ export async function analyzeText(title: string, description?: string): Promise<
     const userMessage = `Başlık: ${title}\nAçıklama: ${description ?? '(yok)'}`;
 
     const MODELS = ['groq/compound', 'groq/compound-mini'];
-    let res: Response | null = null;
-    let usedModel = '';
-    for (const model of MODELS) {
-      const attempt = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const SCALE5_KEYS = ['technicalComplexity', 'scopeClarity', 'techDebtRisk', 'domainKnowledge',
+      'testLoad', 'reproductionDifficulty', 'rootCauseClarity', 'fixImpactScope', 'regressionRisk',
+      'ambiguityLevel'];
+    const COUNT_KEYS = ['integrationPoints', 'affectedModuleCount', 'dependencyCount', 'testCaseCount', 'stakeholderCount'];
+    const BOOL_KEYS = ['hasSecurityConstraint', 'hasPerformanceConstraint', 'hasSimilarHistory'];
+    const VALID_TASK_TYPES = new Set(['USER_STORY', 'BUG', 'ANALYSIS', 'TEST_TASK', 'DESIGN', 'DEVOPS', 'SPIKE', 'SUB_TASK']);
+
+    async function callGroq(model: string) {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${env.GROQ_API_KEY}`,
@@ -114,31 +119,34 @@ export async function analyzeText(title: string, description?: string): Promise<
           max_tokens: 400,
         }),
       });
-      if (attempt.ok) { res = attempt; usedModel = model; break; }
-      console.warn(`[groq] model=${model} failed with ${attempt.status}, trying next`);
+      if (!res.ok) return null;
+      const json = await res.json() as any;
+      const content = json.choices?.[0]?.message?.content;
+      if (!content) return null;
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return null;
+      try { return JSON.parse(jsonMatch[0]); } catch { return null; }
     }
-    if (!res) throw new Error('All Groq models failed');
 
-    const json = await res.json() as any;
-    const content = json.choices?.[0]?.message?.content;
-    if (!content) throw new Error('Empty response');
+    let parsed: any = null;
+    let usedModel = '';
+    for (const model of MODELS) {
+      const result = await callGroq(model);
+      if (result && Object.keys(result.criteria ?? {}).length > 0) {
+        parsed = result;
+        usedModel = model;
+        break;
+      }
+      if (result && !parsed) { parsed = result; usedModel = model; } // boş sonuç olsa da sakla
+      console.warn(`[groq] model=${model} returned empty criteria, trying next`);
+      await new Promise(r => setTimeout(r, 500));
+    }
+    if (!parsed) throw new Error('All Groq models returned empty');
 
-    // JSON bloğunu çıkar (model bazen ```json ... ``` içinde döndürebilir)
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No JSON in response');
-    const parsed = JSON.parse(jsonMatch[0]);
-
-    const VALID_TASK_TYPES = new Set(['USER_STORY', 'BUG', 'ANALYSIS', 'TEST_TASK', 'DESIGN', 'DEVOPS', 'SPIKE', 'SUB_TASK']);
     const rawDetected = parsed.detectedTaskType;
     const detectedTaskType = rawDetected && rawDetected !== 'null' && VALID_TASK_TYPES.has(rawDetected)
       ? rawDetected
       : signals.detectedTaskType;
-
-    const SCALE5_KEYS = ['technicalComplexity', 'scopeClarity', 'techDebtRisk', 'domainKnowledge',
-      'testLoad', 'reproductionDifficulty', 'rootCauseClarity', 'fixImpactScope', 'regressionRisk',
-      'ambiguityLevel'];
-    const COUNT_KEYS = ['integrationPoints', 'affectedModuleCount', 'dependencyCount', 'testCaseCount', 'stakeholderCount'];
-    const BOOL_KEYS = ['hasSecurityConstraint', 'hasPerformanceConstraint', 'hasSimilarHistory'];
 
     for (const [key, val] of Object.entries(parsed.criteria ?? {})) {
       if (key in suggestedCriteria) continue; // regex sonucu korunur
