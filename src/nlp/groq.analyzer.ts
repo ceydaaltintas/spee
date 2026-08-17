@@ -93,7 +93,7 @@ export async function analyzeText(title: string, description?: string): Promise<
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'groq/compound-mini',
+        model: 'qwen/qwen3.6-27b',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userMessage },
