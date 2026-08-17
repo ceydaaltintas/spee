@@ -110,7 +110,7 @@ export async function analyzeText(title: string, description?: string): Promise<
           body: JSON.stringify({
             system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
             contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-            generationConfig: { responseMimeType: 'application/json', temperature: 0.1, maxOutputTokens: 500 },
+            generationConfig: { responseMimeType: 'application/json', temperature: 0.1, maxOutputTokens: 1500 },
           }),
         },
       );
