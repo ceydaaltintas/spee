@@ -27,6 +27,7 @@ export interface AnalyzeTextResult {
   suggestedCriteria: Record<string, { type: 'scale5' | 'count' | 'boolean'; value: number | boolean }>;
   sources: Record<string, 'regex' | 'llm'>;
   groqAvailable: boolean;
+  modelUsed?: string;
 }
 
 const SYSTEM_PROMPT = `Sen bir yazılım geliştirme uzmanısın. Sana verilen PBI başlığı ve açıklamasını analiz edeceksin.
@@ -95,6 +96,7 @@ export async function analyzeText(title: string, description?: string): Promise<
     // Sırayla dene: önce daha güçlü model, fail ederse fallback
     const MODELS = ['openai/gpt-oss-20b', 'groq/compound'];
     let res: Response | null = null;
+    let usedModel = '';
     for (const model of MODELS) {
       const attempt = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -113,7 +115,7 @@ export async function analyzeText(title: string, description?: string): Promise<
           max_tokens: 400,
         }),
       });
-      if (attempt.ok) { res = attempt; break; }
+      if (attempt.ok) { res = attempt; usedModel = model; break; }
       console.warn(`[groq] model=${model} failed with ${attempt.status}, trying next`);
     }
     if (!res) throw new Error('All Groq models failed');
@@ -154,7 +156,7 @@ export async function analyzeText(title: string, description?: string): Promise<
       }
     }
 
-    return { detectedTaskType, suggestedCriteria, sources, groqAvailable: true };
+    return { detectedTaskType, suggestedCriteria, sources, groqAvailable: true, modelUsed: usedModel };
   } catch (e) {
     // Groq başarısız olursa regex sonuçlarıyla devam et
     return { detectedTaskType: signals.detectedTaskType, suggestedCriteria, sources, groqAvailable: false };
