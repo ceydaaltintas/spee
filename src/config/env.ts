@@ -11,6 +11,7 @@ const envSchema = z.object({
   API_KEY: z.string().min(1),
   FEATURE_NLP: z.coerce.boolean().default(false),
   GROQ_API_KEY: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
   FEATURE_CBR: z.coerce.boolean().default(false),
   FEATURE_ENSEMBLE: z.coerce.boolean().default(false),
   FEATURE_FEEDBACK: z.coerce.boolean().default(false),

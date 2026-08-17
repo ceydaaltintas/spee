@@ -86,14 +86,13 @@ export async function analyzeText(title: string, description?: string): Promise<
     sources.testCaseCount = 'regex';
   }
 
-  if (!env.GROQ_API_KEY) {
+  if (!env.GROQ_API_KEY && !env.GEMINI_API_KEY) {
     return { detectedTaskType: signals.detectedTaskType, suggestedCriteria, sources, groqAvailable: false };
   }
 
   try {
     const userMessage = `Başlık: ${title}\nAçıklama: ${description ?? '(yok)'}`;
 
-    const MODELS = ['groq/compound', 'groq/compound-mini'];
     const SCALE5_KEYS = ['technicalComplexity', 'scopeClarity', 'techDebtRisk', 'domainKnowledge',
       'testLoad', 'reproductionDifficulty', 'rootCauseClarity', 'fixImpactScope', 'regressionRisk',
       'ambiguityLevel'];
@@ -101,25 +100,42 @@ export async function analyzeText(title: string, description?: string): Promise<
     const BOOL_KEYS = ['hasSecurityConstraint', 'hasPerformanceConstraint', 'hasSimilarHistory'];
     const VALID_TASK_TYPES = new Set(['USER_STORY', 'BUG', 'ANALYSIS', 'TEST_TASK', 'DESIGN', 'DEVOPS', 'SPIKE', 'SUB_TASK']);
 
-    async function callGroq(model: string) {
+    async function callGemini(): Promise<any> {
+      if (!env.GEMINI_API_KEY) return null;
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: `${SYSTEM_PROMPT}\n\n${userMessage}` }] }],
+            generationConfig: { responseMimeType: 'application/json', temperature: 0.1, maxOutputTokens: 400 },
+          }),
+        },
+      );
+      if (!res.ok) { console.warn(`[gemini] failed with ${res.status}`); return null; }
+      const json = await res.json() as any;
+      const content = json.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!content) return null;
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return null;
+      try { return JSON.parse(jsonMatch[0]); } catch { return null; }
+    }
+
+    async function callGroq(model: string): Promise<any> {
+      if (!env.GROQ_API_KEY) return null;
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${env.GROQ_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: userMessage },
-          ],
+          messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: userMessage }],
           response_format: { type: 'json_object' },
           temperature: 0.1,
           max_tokens: 400,
         }),
       });
-      if (!res.ok) return null;
+      if (!res.ok) { console.warn(`[groq] model=${model} failed with ${res.status}`); return null; }
       const json = await res.json() as any;
       const content = json.choices?.[0]?.message?.content;
       if (!content) return null;
@@ -128,20 +144,27 @@ export async function analyzeText(title: string, description?: string): Promise<
       try { return JSON.parse(jsonMatch[0]); } catch { return null; }
     }
 
+    // Önce Gemini, başarısız/kota doluysa Groq
+    const attempts: Array<() => Promise<any>> = [
+      () => callGemini(),
+      () => callGroq('groq/compound'),
+      () => callGroq('groq/compound-mini'),
+    ];
+
     let parsed: any = null;
     let usedModel = '';
-    for (const model of MODELS) {
-      const result = await callGroq(model);
+    const modelNames = ['gemini-2.0-flash', 'groq/compound', 'groq/compound-mini'];
+
+    for (let i = 0; i < attempts.length; i++) {
+      const result = await attempts[i]!();
       if (result && Object.keys(result.criteria ?? {}).length > 0) {
         parsed = result;
-        usedModel = model;
+        usedModel = modelNames[i]!;
         break;
       }
-      if (result && !parsed) { parsed = result; usedModel = model; } // boş sonuç olsa da sakla
-      console.warn(`[groq] model=${model} returned empty criteria, trying next`);
-      await new Promise(r => setTimeout(r, 500));
+      if (result && !parsed) { parsed = result; usedModel = modelNames[i]!; }
     }
-    if (!parsed) throw new Error('All Groq models returned empty');
+    if (!parsed) throw new Error('All providers returned empty');
 
     const rawDetected = parsed.detectedTaskType;
     const detectedTaskType = rawDetected && rawDetected !== 'null' && VALID_TASK_TYPES.has(rawDetected)
