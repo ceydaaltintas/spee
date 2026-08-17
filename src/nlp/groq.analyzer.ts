@@ -110,7 +110,7 @@ export async function analyzeText(title: string, description?: string): Promise<
             { role: 'user', content: userMessage },
           ],
           response_format: { type: 'json_object' },
-          temperature: 0.1,
+          temperature: 0,
           max_tokens: 400,
         }),
       });
