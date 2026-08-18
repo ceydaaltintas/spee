@@ -188,6 +188,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
         const analyzeRes = await api.post('/analyze-text', {
           title: row.title,
           description: row.description,
+          ...(row.taskType ? { taskType: row.taskType } : {}),
         });
         const { suggestedCriteria, detectedTaskType } = analyzeRes.data;
         const taskType = row.taskType ?? detectedTaskType ?? 'USER_STORY';
