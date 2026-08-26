@@ -389,7 +389,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
                   <td style={{ fontSize: '0.8rem', color: '#64748b' }}>{TASK_TYPE_LABELS[r.taskType] ?? r.taskType}</td>
                   <td style={{ textAlign: 'center' }}>
                     {r.error
-                      ? <span style={{ color: '#fca5a5', fontSize: '0.78rem' }}>hata</span>
+                      ? <><span style={{ color: '#fca5a5', fontSize: '0.78rem' }}>hata</span><br /><small style={{ color: '#fca5a5', fontSize: '0.7rem', opacity: 0.8 }}>{r.error}</small></>
                       : <strong style={{ color: '#38bdf8', fontSize: '1rem' }}>{r.suggestedSP}</strong>}
                   </td>
                   <td style={{ textAlign: 'center' }}>
