@@ -208,7 +208,7 @@ export async function analyzeText(
     const systemPrompt = validHint ? (PROMPTS[validHint] ?? DEFAULT_PROMPT) : DEFAULT_PROMPT;
     const userMessage = `Başlık: ${title}\nAçıklama: ${description ?? '(yok)'}`;
 
-    async function callGemini(): Promise<any> {
+    async function callGemini(attempt = 0): Promise<any> {
       if (!env.GEMINI_API_KEY) { console.warn('[gemini] no API key'); return null; }
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 20000);
@@ -236,6 +236,11 @@ export async function analyzeText(
       if (!res.ok) {
         const errText = await res.text();
         console.warn(`[gemini] HTTP ${res.status}: ${errText.slice(0, 200)}`);
+        if (res.status === 503 && attempt === 0) {
+          console.log('[gemini] 503 — 3s bekleyip retry yapılıyor');
+          await new Promise(r => setTimeout(r, 3000));
+          return callGemini(1);
+        }
         return null;
       }
       const json = await res.json() as any;
