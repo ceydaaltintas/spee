@@ -11,6 +11,7 @@ interface BulkRow {
   description?: string;
   taskType?: TaskType;
   sprintId?: string;
+  itemId?: string;
 }
 
 interface BulkResult {
@@ -19,6 +20,7 @@ interface BulkResult {
   suggestedSP: number;
   confidenceScore: number;
   autoFilledCount: number;
+  sourceId: string;
   error?: string;
 }
 
@@ -49,10 +51,10 @@ const TASK_TYPE_FROM_TR: Record<string, TaskType> = {
 };
 
 const TEMPLATE_DATA = [
-  ['başlık', 'açıklama', 'görev tipi', 'sprint'],
-  ['Kullanıcı şifre sıfırlama', 'JWT token ile email üzerinden sıfırlama akışı. Güvenlik kısıtları var.', 'Kullanıcı Hikayesi', 'Sprint-42'],
-  ['Login hata mesajı düzeltme', 'Yanlış şifre girildiğinde ekran boş kalıyor', 'Hata', 'Sprint-42'],
-  ['Ödeme entegrasyon analizi', 'Stripe ve iyzico karşılaştırması yapılacak', 'Analiz', ''],
+  ['başlık', 'açıklama', 'görev tipi', 'sprint', 'id'],
+  ['Kullanıcı şifre sıfırlama', 'JWT token ile email üzerinden sıfırlama akışı. Güvenlik kısıtları var.', 'Kullanıcı Hikayesi', 'Sprint-42', 'PROJ-101'],
+  ['Login hata mesajı düzeltme', 'Yanlış şifre girildiğinde ekran boş kalıyor', 'Hata', 'Sprint-42', 'PROJ-102'],
+  ['Ödeme entegrasyon analizi', 'Stripe ve iyzico karşılaştırması yapılacak', 'Analiz', '', ''],
 ];
 
 const TASK_TYPE_NOTES = [
@@ -70,7 +72,7 @@ const TASK_TYPE_NOTES = [
 function downloadTemplate() {
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(TEMPLATE_DATA);
-  ws['!cols'] = [{ wch: 40 }, { wch: 60 }, { wch: 20 }, { wch: 15 }];
+  ws['!cols'] = [{ wch: 40 }, { wch: 60 }, { wch: 20 }, { wch: 15 }, { wch: 15 }];
   XLSX.utils.book_append_sheet(wb, ws, 'PBIler');
   const wsNotes = XLSX.utils.aoa_to_sheet(TASK_TYPE_NOTES);
   wsNotes['!cols'] = [{ wch: 25 }];
@@ -80,8 +82,9 @@ function downloadTemplate() {
 
 function downloadResults(results: BulkResult[]) {
   const rows = [
-    ['Başlık', 'Görev Tipi', 'Önerilen SP', 'Güven (%)', 'Oto. Kriter', 'Hata'],
+    ['ID', 'Başlık', 'Görev Tipi', 'Önerilen SP', 'Güven (%)', 'Oto. Kriter', 'Hata'],
     ...results.map(r => [
+      r.sourceId,
       r.title,
       TASK_TYPE_LABELS[r.taskType] ?? r.taskType,
       r.suggestedSP ?? '',
@@ -92,7 +95,7 @@ function downloadResults(results: BulkResult[]) {
   ];
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{ wch: 40 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 30 }];
+  ws['!cols'] = [{ wch: 20 }, { wch: 40 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 30 }];
   XLSX.utils.book_append_sheet(wb, ws, 'Sonuçlar');
   XLSX.writeFile(wb, 'spee_bulk_sonuclar.xlsx');
 }
@@ -151,6 +154,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
               description: String(r['açıklama'] ?? r['Açıklama'] ?? r['description'] ?? '').trim() || undefined,
               taskType,
               sprintId: String(r['sprint'] ?? r['Sprint'] ?? r['sprintId'] ?? '').trim() || undefined,
+              itemId: String(r['id'] ?? r['ID'] ?? r['Id'] ?? '').trim() || undefined,
             };
           })
           .filter(r => r.title.length > 0);
@@ -194,9 +198,13 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
         const taskType = row.taskType ?? detectedTaskType ?? 'USER_STORY';
 
         // 2. Tahmin
+        const sourceId = row.itemId && row.sprintId
+          ? `${row.sprintId}#${row.itemId}`
+          : row.itemId ?? `bulk-${Date.now()}-${i}`;
+
         const estimateRes = await api.post('/estimate', {
           sourceSystem: 'JIRA',
-          sourceId: `bulk-${Date.now()}-${i}`,
+          sourceId,
           teamId,
           taskType,
           sprintId: row.sprintId,
@@ -212,18 +220,23 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
           suggestedSP: estimateRes.data.suggestedSP,
           confidenceScore: estimateRes.data.confidenceScore,
           autoFilledCount: Object.keys(suggestedCriteria).length,
+          sourceId,
         });
       } catch (e: any) {
         const status = e.response?.status;
         const msg = status === 429
           ? 'AI kota sınırına ulaşıldı, lütfen 1 dakika bekleyip tekrar deneyin'
           : e.response?.data?.error ?? e.message;
+        const fallbackSourceId = row.itemId && row.sprintId
+          ? `${row.sprintId}#${row.itemId}`
+          : row.itemId ?? `bulk-${Date.now()}-${i}`;
         out.push({
           title: row.title,
           taskType: row.taskType ?? 'USER_STORY',
           suggestedSP: 0,
           confidenceScore: 0,
           autoFilledCount: 0,
+          sourceId: fallbackSourceId,
           error: msg,
         });
       }
@@ -367,7 +380,12 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
             <tbody>
               {results.map((r, i) => (
                 <tr key={i}>
-                  <td style={{ fontWeight: 500 }}>{r.title}</td>
+                  <td style={{ fontWeight: 500 }}>
+                    {r.title}
+                    {r.sourceId && !r.sourceId.startsWith('bulk-') && (
+                      <><br /><small style={{ color: '#64748b', fontWeight: 400 }}>{r.sourceId}</small></>
+                    )}
+                  </td>
                   <td style={{ fontSize: '0.8rem', color: '#64748b' }}>{TASK_TYPE_LABELS[r.taskType] ?? r.taskType}</td>
                   <td style={{ textAlign: 'center' }}>
                     {r.error
