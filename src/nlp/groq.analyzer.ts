@@ -210,18 +210,29 @@ export async function analyzeText(
 
     async function callGemini(): Promise<any> {
       if (!env.GEMINI_API_KEY) { console.warn('[gemini] no API key'); return null; }
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${env.GEMINI_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-            generationConfig: { responseMimeType: 'application/json', temperature: 0.1, maxOutputTokens: 1500 },
-          }),
-        },
-      );
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 20000);
+      let res: Response;
+      try {
+        res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${env.GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: systemPrompt }] },
+              contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+              generationConfig: { responseMimeType: 'application/json', temperature: 0.1, maxOutputTokens: 1500 },
+            }),
+            signal: controller.signal,
+          },
+        );
+      } catch (e: any) {
+        console.warn('[gemini] fetch error:', e.message);
+        return null;
+      } finally {
+        clearTimeout(timer);
+      }
       if (!res.ok) {
         const errText = await res.text();
         console.warn(`[gemini] HTTP ${res.status}: ${errText.slice(0, 200)}`);
@@ -250,17 +261,28 @@ export async function analyzeText(
 
     async function callGroq(model: string): Promise<any> {
       if (!env.GROQ_API_KEY) return null;
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }],
-          response_format: { type: 'json_object' },
-          temperature: 0.1,
-          max_tokens: 600,
-        }),
-      });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+      let res: Response;
+      try {
+        res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }],
+            response_format: { type: 'json_object' },
+            temperature: 0.1,
+            max_tokens: 600,
+          }),
+          signal: controller.signal,
+        });
+      } catch (e: any) {
+        console.warn(`[groq] model=${model} fetch error:`, e.message);
+        return null;
+      } finally {
+        clearTimeout(timer);
+      }
       if (!res.ok) { console.warn(`[groq] model=${model} failed with ${res.status}`); return null; }
       const json = await res.json() as any;
       const content = json.choices?.[0]?.message?.content;
