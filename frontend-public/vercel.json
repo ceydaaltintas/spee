@@ -2,6 +2,7 @@
   "buildCommand": "npm install && npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
+    { "source": "/api/v1/:path*", "destination": "/api/proxy?_p=:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

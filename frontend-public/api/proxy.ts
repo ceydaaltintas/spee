@@ -5,7 +5,13 @@ const STRIP_HEADERS = ['x-railway-edge', 'x-railway-request-id', 'x-hikari-trace
 
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const targetUrl = `${RAILWAY_URL}${url.pathname}${url.search}`;
+
+  // Path is passed explicitly via rewrite: /api/v1/:path* → /api/proxy?_p=:path*
+  const pathParam = url.searchParams.get('_p') ?? '';
+  const forwardParams = new URLSearchParams(url.searchParams);
+  forwardParams.delete('_p');
+  const qs = forwardParams.toString() ? `?${forwardParams.toString()}` : '';
+  const targetUrl = `${RAILWAY_URL}/api/v1/${pathParam}${qs}`;
 
   const apiKey = process.env.RAILWAY_API_KEY;
   if (!apiKey) {
