@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import { env } from './config/env.js';
 import { authMiddleware } from './api/middlewares/auth.middleware.js';
 import { errorHandler } from './api/middlewares/error.middleware.js';
@@ -17,6 +18,13 @@ export function buildApp() {
   app.register(cors, {
     origin: env.CORS_ORIGIN ? env.CORS_ORIGIN.split(',') : true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  });
+
+  app.register(rateLimit, {
+    global: true,
+    max: 30,
+    timeWindow: '1 minute',
+    errorResponseBuilder: () => ({ error: 'Çok fazla istek. 1 dakika bekleyin.' }),
   });
 
   app.setErrorHandler(errorHandler);

@@ -27,6 +27,7 @@ interface ApproveBody {
 export async function estimateRoutes(app: FastifyInstance) {
   app.post<{ Body: EstimateBody }>('/estimate', {
     schema: { body: estimateBodySchema },
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
   }, async (request, reply) => {
     const { sourceSystem, sourceId, teamId, taskType: requestedTaskType, sprintId, manualCriteria } = request.body;
 
