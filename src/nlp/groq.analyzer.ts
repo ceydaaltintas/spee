@@ -299,10 +299,11 @@ export async function analyzeText(
 
     const attempts: Array<() => Promise<any>> = [
       () => callGemini(),
+      () => callGroq('qwen/qwen3.8-27b'),
       () => callGroq('groq/compound'),
       () => callGroq('groq/compound-mini'),
     ];
-    const modelNames = ['gemini-flash-lite', 'groq/compound', 'groq/compound-mini'];
+    const modelNames = ['gemini-flash-lite', 'qwen/qwen3.8-27b', 'groq/compound', 'groq/compound-mini'];
 
     let parsed: any = null;
     let usedModel = '';
