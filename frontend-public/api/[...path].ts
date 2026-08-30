@@ -16,7 +16,7 @@ export default async function handler(req: Request): Promise<Response> {
   headers.set('Authorization', `Bearer ${apiKey}`);
   headers.set('Content-Type', 'application/json');
 
-  const body = req.method !== 'GET' && req.method !== 'HEAD' ? req.body : undefined;
+  const body = req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined;
 
   const response = await fetch(targetUrl, {
     method: req.method,
