@@ -22,9 +22,7 @@ function loadSavedTeams(): SavedTeam[] {
     const parsed = JSON.parse(raw) as SavedTeam[];
     if (!parsed.find(t => t.id === DEMO_TEAM_ID)) return [DEMO_TEAM, ...parsed];
     return parsed;
-  } catch {
-    return [DEMO_TEAM];
-  }
+  } catch { return [DEMO_TEAM]; }
 }
 
 function saveTeams(teams: SavedTeam[]) {
@@ -37,7 +35,6 @@ export default function App() {
   const [teamConfig, setTeamConfig] = useState<TeamConfig | null>(null);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('spee_theme') !== 'light');
 
-  // create form
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newSource, setNewSource] = useState<'JIRA' | 'ADO'>('JIRA');
@@ -45,12 +42,12 @@ export default function App() {
   const [createError, setCreateError] = useState('');
   const [createdCode, setCreatedCode] = useState('');
 
-  // join by code
   const [showJoin, setShowJoin] = useState(false);
   const [joinId, setJoinId] = useState('');
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState('');
 
+  const [showTeamMenu, setShowTeamMenu] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -65,10 +62,24 @@ export default function App() {
       .catch(() => setTeamConfig(null));
   }, [teamId]);
 
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowTeamMenu(false);
+        setShowCreate(false);
+        setShowJoin(false);
+        setCreatedCode('');
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
   function switchTeam(id: string) {
     setTeamId(id);
     setTeamConfig(null);
     localStorage.setItem('spee_team_id', id);
+    setShowTeamMenu(false);
   }
 
   function addAndSwitch(team: SavedTeam) {
@@ -93,38 +104,30 @@ export default function App() {
 
   async function handleCreate() {
     if (!newName.trim()) return;
-    setCreating(true);
-    setCreateError('');
+    setCreating(true); setCreateError('');
     try {
       const res = await api.post<{ id: string; name: string; sourceSystem: string; joinCode: string }>('/teams', {
-        name: newName.trim(),
-        sourceSystem: newSource,
+        name: newName.trim(), sourceSystem: newSource,
       });
       addAndSwitch(res.data);
       setCreatedCode(res.data.joinCode);
       setNewName('');
-    } catch {
-      setCreateError('Takım oluşturulamadı.');
-    } finally {
-      setCreating(false);
-    }
+    } catch { setCreateError('Takım oluşturulamadı.'); }
+    finally { setCreating(false); }
   }
 
   async function handleJoin() {
     if (!joinId.trim()) return;
-    setJoining(true);
-    setJoinError('');
+    setJoining(true); setJoinError('');
     try {
-      const res = await api.get<{ id: string; name: string; sourceSystem: string; joinCode: string }>(`/teams/join/${joinId.trim()}`);
+      const res = await api.get<{ id: string; name: string; sourceSystem: string }>(`/teams/join/${joinId.trim()}`);
       addAndSwitch({ id: res.data.id, name: res.data.name, sourceSystem: res.data.sourceSystem });
-      setShowJoin(false);
-      setJoinId('');
-    } catch {
-      setJoinError('Geçersiz giriş kodu.');
-    } finally {
-      setJoining(false);
-    }
+      setShowJoin(false); setJoinId('');
+    } catch { setJoinError('Geçersiz giriş kodu.'); }
+    finally { setJoining(false); }
   }
+
+  const currentTeam = teams.find(t => t.id === teamId);
 
   return (
     <BrowserRouter>
@@ -132,102 +135,140 @@ export default function App() {
         <Route path="/standalone" element={<StandalonePage />} />
         <Route path="*" element={
           <div className="app">
+
+            {/* ── Header ── */}
             <header>
-              <h1>SPEE</h1>
-              <span className="subtitle">Story Point Estimation Engine</span>
-
-              <div className="team-select" ref={dropdownRef}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span className="team-name">
-                    {teams.find(t => t.id === teamId)?.name ?? '—'}
-                  </span>
-                  <button
-                    onClick={() => { setShowCreate(v => !v); setShowJoin(false); }}
-                    style={{ fontSize: '0.75rem', padding: '4px 10px', whiteSpace: 'nowrap' }}
-                  >
-                    + Yeni
-                  </button>
-                  <button
-                    onClick={() => { setShowJoin(v => !v); setShowCreate(false); setCreatedCode(''); }}
-                    style={{ fontSize: '0.75rem', padding: '4px 10px', whiteSpace: 'nowrap' }}
-                  >
-                    Kod ile Katıl
-                  </button>
+              <div className="header-brand">
+                <div className="header-logo-wrap">
+                  <svg width="20" height="20" viewBox="0 0 48 46" fill="none">
+                    <path fill="currentColor" d="M25.946 44.938c-.664.845-2.021.375-2.021-.698V33.937a2.26 2.26 0 0 0-2.262-2.262H10.287c-.92 0-1.456-1.04-.92-1.788l7.48-10.471c1.07-1.497 0-3.578-1.842-3.578H1.237c-.92 0-1.456-1.04-.92-1.788L10.013.474c.214-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.471c-1.07 1.498 0 3.579 1.842 3.579h11.377c.943 0 1.473 1.088.89 1.83L25.947 44.94z"/>
+                  </svg>
                 </div>
-                {teamConfig && (
-                  <span style={{ fontSize: '0.72rem', color: '#6ee7b7', marginTop: '3px', display: 'block' }}>
-                    {teamConfig.sourceSystem} · {teamConfig.activeTechnique}
-                  </span>
-                )}
+                <div>
+                  <h1>SPEE</h1>
+                  <span className="subtitle">Story Point Estimation Engine</span>
+                </div>
+              </div>
 
-                {showCreate && (
-                  <div className="dropdown-panel" style={{ minWidth: '260px' }}>
-                    <div className="dropdown-title" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8' }}>Yeni Takım Oluştur</div>
-                    {createdCode ? (
-                      <>
-                        <div style={{ fontSize: '0.78rem', color: '#6ee7b7' }}>Takım oluşturuldu. Giriş kodunu paylaş:</div>
-                        <div style={{ fontSize: '1.6rem', fontWeight: 700, letterSpacing: '0.25em', color: '#38bdf8', textAlign: 'center', padding: '0.5rem', background: '#0f172a', borderRadius: '6px', border: '1px solid #0369a1' }}>
-                          {createdCode}
-                        </div>
-                        <div style={{ fontSize: '0.72rem', color: '#475569', textAlign: 'center' }}>Takım üyeleri bu kodla katılabilir</div>
-                        <button onClick={() => { setShowCreate(false); setCreatedCode(''); }}>Tamam</button>
-                      </>
-                    ) : (
-                      <>
-                        <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Takım adı" onKeyDown={e => e.key === 'Enter' && handleCreate()} autoFocus />
-                        <select value={newSource} onChange={e => setNewSource(e.target.value as 'JIRA' | 'ADO')}>
-                          <option value="JIRA">Jira</option>
-                          <option value="ADO">Azure DevOps</option>
-                        </select>
-                        {createError && <div style={{ fontSize: '0.78rem', color: '#fca5a5' }}>{createError}</div>}
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button className="primary" onClick={handleCreate} disabled={creating || !newName.trim()}>
-                            {creating ? '...' : 'Oluştur'}
-                          </button>
-                          <button onClick={() => { setShowCreate(false); setCreateError(''); }}>İptal</button>
-                        </div>
-                      </>
+              <div className="header-actions" ref={dropdownRef}>
+                <div className="team-chip-wrap">
+                  <button
+                    className="team-chip"
+                    onClick={() => { setShowTeamMenu(v => !v); setShowCreate(false); setShowJoin(false); setCreatedCode(''); }}
+                  >
+                    <span className="team-chip-dot" />
+                    <span className="team-chip-name">{currentTeam?.name ?? '—'}</span>
+                    {teamConfig && (
+                      <span className="team-chip-meta">{teamConfig.sourceSystem} · {teamConfig.activeTechnique}</span>
                     )}
-                  </div>
-                )}
+                    <svg className="team-chip-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
 
-                {showJoin && (
-                  <div className="dropdown-panel" style={{ minWidth: '240px' }}>
-                    <div className="dropdown-title" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8' }}>Takıma Katıl</div>
-                    <input
-                      value={joinId}
-                      onChange={e => setJoinId(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
-                      placeholder="Giriş kodu (örn: AB3X7K)"
-                      onKeyDown={e => e.key === 'Enter' && joinId.length === 6 && handleJoin()}
-                      autoFocus
-                      style={{ letterSpacing: '0.2em', fontWeight: 600, fontSize: '1rem', textAlign: 'center' }}
-                    />
-                    {joinError && <div style={{ fontSize: '0.78rem', color: '#fca5a5' }}>{joinError}</div>}
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button className="primary" onClick={handleJoin} disabled={joining || joinId.length !== 6}>
-                        {joining ? '...' : 'Katıl'}
-                      </button>
-                      <button onClick={() => { setShowJoin(false); setJoinError(''); setJoinId(''); }}>İptal</button>
+                  {showTeamMenu && !showCreate && !showJoin && (
+                    <div className="dropdown-panel">
+                      <div className="dropdown-title">Takımlar</div>
+                      {teams.map(t => (
+                        <button
+                          key={t.id}
+                          className={`dropdown-team-item${t.id === teamId ? ' active' : ''}`}
+                          onClick={() => switchTeam(t.id)}
+                        >
+                          <span className="team-chip-dot" style={{ background: t.id === teamId ? 'var(--accent)' : 'var(--border-strong)' }} />
+                          {t.name}
+                        </button>
+                      ))}
+                      <div className="dropdown-divider" />
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <button className="dropdown-action" onClick={() => { setShowCreate(true); setShowTeamMenu(false); }}>
+                          + Yeni Takım
+                        </button>
+                        <button className="dropdown-action" onClick={() => { setShowJoin(true); setShowTeamMenu(false); }}>
+                          Kod ile Katıl
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+
+                  {showCreate && (
+                    <div className="dropdown-panel" style={{ minWidth: '280px' }}>
+                      <div className="dropdown-title">Yeni Takım Oluştur</div>
+                      {createdCode ? (
+                        <>
+                          <p className="dropdown-hint">Takım oluşturuldu. Giriş kodunu paylaş:</p>
+                          <div className="join-code-display">{createdCode}</div>
+                          <p className="dropdown-hint" style={{ textAlign: 'center' }}>Takım üyeleri bu kodla katılabilir</p>
+                          <button onClick={() => { setShowCreate(false); setCreatedCode(''); }}>Tamam</button>
+                        </>
+                      ) : (
+                        <>
+                          <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Takım adı" onKeyDown={e => e.key === 'Enter' && handleCreate()} autoFocus />
+                          <select value={newSource} onChange={e => setNewSource(e.target.value as 'JIRA' | 'ADO')}>
+                            <option value="JIRA">Jira</option>
+                            <option value="ADO">Azure DevOps</option>
+                          </select>
+                          {createError && <p className="dropdown-error">{createError}</p>}
+                          <div style={{ display: 'flex', gap: '0.4rem' }}>
+                            <button className="primary" onClick={handleCreate} disabled={creating || !newName.trim()}>
+                              {creating ? '...' : 'Oluştur'}
+                            </button>
+                            <button onClick={() => { setShowCreate(false); setCreateError(''); }}>İptal</button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {showJoin && (
+                    <div className="dropdown-panel" style={{ minWidth: '260px' }}>
+                      <div className="dropdown-title">Takıma Katıl</div>
+                      <input
+                        value={joinId}
+                        onChange={e => setJoinId(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+                        placeholder="Giriş kodu (AB3X7K)"
+                        onKeyDown={e => e.key === 'Enter' && joinId.length === 6 && handleJoin()}
+                        autoFocus
+                        style={{ letterSpacing: '0.2em', fontWeight: 600, textAlign: 'center' }}
+                      />
+                      {joinError && <p className="dropdown-error">{joinError}</p>}
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <button className="primary" onClick={handleJoin} disabled={joining || joinId.length !== 6}>
+                          {joining ? '...' : 'Katıl'}
+                        </button>
+                        <button onClick={() => { setShowJoin(false); setJoinError(''); setJoinId(''); }}>İptal</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  className="theme-toggle"
+                  onClick={() => setDarkMode(d => !d)}
+                  title={darkMode ? 'Aydınlık mod' : 'Koyu mod'}
+                >
+                  {darkMode ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                  )}
+                </button>
               </div>
             </header>
 
+            {/* ── Nav ── */}
             <nav>
-              <NavLink to="/">Tahmin</NavLink>
+              <NavLink to="/" end>Tahmin</NavLink>
               <NavLink to="/history">Geçmiş</NavLink>
               <NavLink to="/config">Ayarlar</NavLink>
               <NavLink to="/calibration">Kalibrasyon</NavLink>
               <NavLink to="/bulk">Toplu Tahmin</NavLink>
-              <NavLink to="/standalone" style={{ marginLeft: 'auto', color: '#6ee7b7' }}>Bağımsız Mod</NavLink>
-              <button
-                onClick={() => setDarkMode(d => !d)}
-                style={{ marginLeft: '0.5rem', fontSize: '0.8rem', padding: '4px 10px' }}
-                title={darkMode ? 'Aydınlık moda geç' : 'Koyu moda geç'}
-              >
-                {darkMode ? '☀️' : '🌙'}
-              </button>
+              <div className="nav-spacer" />
+              <NavLink to="/standalone" className="nav-standalone">Bağımsız Mod →</NavLink>
             </nav>
 
             <main>
