@@ -155,13 +155,12 @@ const CRITERIA_BY_TASK_TYPE: Record<string, { key: string; type: 'scale5' | 'cou
   ],
 };
 
-function confidenceColor(score: number): string {
-  if (score >= 0.7) return '#6ee7b7';
-  if (score >= 0.4) return '#fbbf24';
-  return '#fca5a5';
+function confidenceClass(score: number): string {
+  if (score >= 0.7) return 'stat-value-green';
+  if (score >= 0.4) return 'stat-value-amber';
+  return 'stat-value-red';
 }
 
-// Mevcut kriterler ile baseline snapshot arasında 0–1 benzerlik skoru
 function computeSimilarity(
   current: Record<string, CriteriaValue>,
   snapshot: Record<string, { type: string; value: number | boolean }>,
@@ -179,7 +178,6 @@ function computeSimilarity(
     if (snapshot[k].type === 'scale5') {
       totalSim += 1 - Math.abs(a - b) / 4;
     } else {
-      // count: log2 normalize, max=32
       const la = Math.log2((a || 0) + 1) / Math.log2(33);
       const lb = Math.log2(b + 1) / Math.log2(33);
       totalSim += 1 - Math.abs(la - lb);
@@ -207,7 +205,6 @@ function BaselineRefs({ baselines, taskType, suggestedSP, currentCriteria, teamI
   const [applyingId, setApplyingId] = useState<string | null>(null);
   const [appliedId, setAppliedId] = useState<string | null>(null);
 
-  // Görev tipine özgün önce, sonra genel — sadece ilgili olanlar
   const relevant = [
     ...baselines.filter(b => b.taskType === taskType),
     ...baselines.filter(b => !b.taskType),
@@ -222,70 +219,57 @@ function BaselineRefs({ baselines, taskType, suggestedSP, currentCriteria, teamI
         const boolEntries = snap ? Object.entries(snap).filter(([, v]) => v.type === 'boolean' && v.value) : [];
         const isOpen = openId === ref.id;
         const diff = typeof suggestedSP === 'number' ? suggestedSP - ref.storyPoints : null;
-        const diffColor = diff === null ? '#64748b' : diff > 0 ? '#fbbf24' : diff < 0 ? '#fca5a5' : '#6ee7b7';
+        const diffClass = diff === null ? 'stat-value-muted' : diff > 0 ? 'stat-value-amber' : diff < 0 ? 'stat-value-red' : 'stat-value-green';
         const diffLabel = diff === null ? '' : diff > 0 ? `+${diff} fazla tahmin` : diff < 0 ? `${diff} eksik tahmin` : 'Tam isabet';
 
-        // Benzerlik skoru
         const similarity = snap ? computeSimilarity(currentCriteria, snap) : 0;
         const simPct = Math.round(similarity * 100);
         const spDiffSteps = typeof suggestedSP === 'number' ? fibStepsBetween(suggestedSP, ref.storyPoints) : 0;
         const showCalibrationHint = similarity >= 0.65 && spDiffSteps >= 2 && typeof suggestedSP === 'number' && suggestedSP !== ref.storyPoints;
 
         return (
-          <div key={ref.id} style={{ background: '#0c1e35', border: '1px solid #0369a1', borderRadius: '8px', overflow: 'hidden' }}>
-            {/* Başlık satırı */}
-            <div
-              onClick={() => setOpenId(isOpen ? null : ref.id)}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 1rem', cursor: 'pointer', userSelect: 'none' }}
-            >
-              {/* SP badge */}
-              <div style={{ minWidth: '40px', height: '40px', background: '#0c4a6e', border: '2px solid #0284c7', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', fontWeight: 700, color: '#38bdf8', flexShrink: 0 }}>
-                {ref.storyPoints}
-              </div>
+          <div key={ref.id} className="baseline-item">
+            <div className="baseline-item-head" onClick={() => setOpenId(isOpen ? null : ref.id)}>
+              <div className="baseline-sp-badge">{ref.storyPoints}</div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.68rem', color: '#38bdf8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Baz İş {!ref.taskType && '· Genel'}
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2px' }}>
+                  <span className="baseline-tag baseline-tag-accent">Baz İş {!ref.taskType && '· Genel'}</span>
                   {snap && (
-                    <span style={{ fontSize: '0.68rem', background: similarity >= 0.65 ? '#052e16' : '#1c1917', color: similarity >= 0.65 ? '#6ee7b7' : '#64748b', border: `1px solid ${similarity >= 0.65 ? '#166534' : '#334155'}`, padding: '1px 5px', borderRadius: '3px' }}>
+                    <span className={`baseline-tag ${similarity >= 0.65 ? 'baseline-tag-match' : 'baseline-tag-muted'}`}>
                       %{simPct} benzer
                     </span>
                   )}
                   {showCalibrationHint && (
-                    <span style={{ fontSize: '0.68rem', background: '#422006', color: '#fbbf24', border: '1px solid #78350f', padding: '1px 5px', borderRadius: '3px' }}>
-                      kalibrasyon önerisi
-                    </span>
+                    <span className="baseline-tag baseline-tag-warn">kalibrasyon önerisi</span>
                   )}
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#e2e8f0', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                  className="team-name">
                   {ref.title}
                 </div>
               </div>
 
-              {/* SP karşılaştırması */}
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>motor önerisi</div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#38bdf8' }}>{suggestedSP} SP</div>
+              <div className="baseline-sp-compare">
+                <div style={{ fontSize: '0.7rem' }} className="criterion-desc">motor önerisi</div>
+                <div style={{ fontSize: '1rem', fontWeight: 700 }} className="stat-value-accent">{suggestedSP} SP</div>
                 {diff !== null && diff !== 0 && (
-                  <div style={{ fontSize: '0.7rem', color: diffColor, fontWeight: 600 }}>{diffLabel}</div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 600 }} className={diffClass}>{diffLabel}</div>
                 )}
-                {diff === 0 && <div style={{ fontSize: '0.7rem', color: '#6ee7b7' }}>Tam isabet ✓</div>}
+                {diff === 0 && <div style={{ fontSize: '0.7rem' }} className="stat-value-green">Tam isabet ✓</div>}
               </div>
 
-              <span style={{ color: '#334155', fontSize: '0.8rem' }}>{isOpen ? '▲' : '▼'}</span>
+              <span style={{ fontSize: '0.8rem' }} className="criterion-desc">{isOpen ? '▲' : '▼'}</span>
             </div>
 
-            {/* Açılır kriter karşılaştırması */}
             {isOpen && (
-              <div style={{ borderTop: '1px solid #0369a1', padding: '0.75rem 1rem', background: '#071529' }}>
+              <div className="baseline-item-body">
                 {ref.description && (
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '0.75rem' }}>{ref.description}</div>
+                  <div style={{ fontSize: '0.78rem', marginBottom: '0.75rem' }} className="criterion-desc">{ref.description}</div>
                 )}
                 {snapEntries.length > 0 ? (
                   <>
-                    <div style={{ fontSize: '0.72rem', color: '#475569', marginBottom: '0.4rem', fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.72rem', marginBottom: '0.4rem' }} className="section-label-muted">
                       BAZ İŞ KRİTER DEĞERLERİ
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: boolEntries.length > 0 ? '0.5rem' : 0 }}>
@@ -294,9 +278,9 @@ function BaselineRefs({ baselines, taskType, suggestedSP, currentCriteria, teamI
                           ? getScaleLabel(key, val.value as number).split(' — ')[0]
                           : String(val.value);
                         return (
-                          <div key={key} style={{ background: '#0c2540', border: '1px solid #0369a1', borderRadius: '5px', padding: '3px 8px', fontSize: '0.75rem' }}>
-                            <span style={{ color: '#64748b' }}>{criteriaLabel(key)}: </span>
-                            <span style={{ color: '#e2e8f0', fontWeight: 600 }}>{label}</span>
+                          <div key={key} className="criteria-chip">
+                            <span className="criteria-chip-key">{criteriaLabel(key)}: </span>
+                            <span className="criteria-chip-val">{label}</span>
                           </div>
                         );
                       })}
@@ -304,40 +288,38 @@ function BaselineRefs({ baselines, taskType, suggestedSP, currentCriteria, teamI
                     {boolEntries.length > 0 && (
                       <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                         {boolEntries.map(([key]) => (
-                          <span key={key} style={{ fontSize: '0.72rem', background: '#422006', border: '1px solid #78350f', color: '#fbbf24', borderRadius: '4px', padding: '2px 6px' }}>
-                            {criteriaLabel(key)}
-                          </span>
+                          <span key={key} className="badge-amber">{criteriaLabel(key)}</span>
                         ))}
                       </div>
                     )}
                   </>
                 ) : (
-                  <div style={{ fontSize: '0.78rem', color: '#475569' }}>Bu baz iş için kriter değeri kaydedilmemiş.</div>
+                  <div style={{ fontSize: '0.78rem' }} className="criterion-desc">Bu baz iş için kriter değeri kaydedilmemiş.</div>
                 )}
                 {showCalibrationHint && (
-                  <div style={{ marginTop: '0.75rem', background: '#1c0a00', border: '1px solid #78350f', borderRadius: '8px', padding: '0.75rem 1rem' }}>
-                    <div style={{ fontSize: '0.8rem', color: '#fbbf24', fontWeight: 600, marginBottom: '0.4rem' }}>
+                  <div className="calib-hint-box">
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.4rem' }} className="stat-value-amber">
                       Kalibrasyon Önerisi
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '0.75rem', lineHeight: 1.6 }}>
-                      Girdiğin değerler baz işe <strong style={{ color: '#e2e8f0' }}>%{simPct}</strong> oranında benziyor.
-                      Motor <strong style={{ color: '#38bdf8' }}>{suggestedSP} SP</strong> önerdi
-                      ama baz işin <strong style={{ color: '#e2e8f0' }}>{ref.storyPoints} SP</strong>.
-                      Bu fark, {diff! > 0
-                        ? `motorun benzer işleri fazla tahmin ettiğine işaret ediyor. Ağırlıklar düşürülürse öneriler daha düşük SP'ye kayar.`
-                        : `motorun benzer işleri eksik tahmin ettiğine işaret ediyor. Ağırlıklar artırılırsa öneriler daha yüksek SP'ye kayar.`}
+                    <div style={{ fontSize: '0.78rem', marginBottom: '0.75rem', lineHeight: 1.6 }} className="criterion-desc">
+                      Girdiğin değerler baz işe <strong style={{ color: 'var(--text-primary)' }}>%{simPct}</strong> oranında benziyor.
+                      Motor <strong style={{ color: 'var(--accent-text)' }}>{suggestedSP} SP</strong> önerdi
+                      ama baz işin <strong style={{ color: 'var(--text-primary)' }}>{ref.storyPoints} SP</strong>.
+                      {diff! > 0
+                        ? ' Motorun benzer işleri fazla tahmin ettiğine işaret ediyor.'
+                        : ' Motorun benzer işleri eksik tahmin ettiğine işaret ediyor.'}
                     </div>
                     {appliedId === ref.id ? (
-                      <div style={{ fontSize: '0.78rem', color: '#6ee7b7', background: '#052e16', border: '1px solid #166534', borderRadius: '6px', padding: '0.5rem 0.75rem' }}>
+                      <div className="calib-applied">
                         ✓ Baz iş kalibrasyon verisi olarak eklendi. Kalibrasyon ekranından analiz et.
                       </div>
                     ) : (
                       <button
+                        className="btn-approve"
                         disabled={applyingId === ref.id}
                         onClick={async () => {
                           setApplyingId(ref.id);
                           try {
-                            // Baz işi onaylı veri olarak kaydet: önce tahmin oluştur, sonra onayla
                             const estRes = await api.post('/estimate', {
                               sourceSystem: 'JIRA',
                               sourceId: `baseline-${ref.id}`,
@@ -354,7 +336,6 @@ function BaselineRefs({ baselines, taskType, suggestedSP, currentCriteria, teamI
                             setApplyingId(null);
                           }
                         }}
-                        style={{ fontSize: '0.78rem', background: '#78350f', border: '1px solid #b45309', color: '#fde68a', borderRadius: '6px', padding: '0.4rem 0.85rem', cursor: 'pointer' }}
                       >
                         {applyingId === ref.id ? 'Kaydediliyor...' : 'Baz İşi Kalibrasyon Verisi Olarak Ekle'}
                       </button>
@@ -362,7 +343,7 @@ function BaselineRefs({ baselines, taskType, suggestedSP, currentCriteria, teamI
                   </div>
                 )}
                 {!showCalibrationHint && diff !== null && diff !== 0 && snap && (
-                  <div style={{ marginTop: '0.75rem', padding: '0.4rem 0.75rem', background: '#0f172a', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b', borderLeft: `3px solid ${diffColor}` }}>
+                  <div className="diff-note" style={{ borderLeftColor: diff > 0 ? 'var(--amber-border)' : 'var(--red-border)' }}>
                     Benzerlik %{simPct} — {simPct < 65 ? 'kriterler yeterince benzer değil, kalibrasyon önerilmiyor.' : 'SP farkı küçük, kalibrasyon gerekmiyor.'}
                   </div>
                 )}
@@ -461,7 +442,6 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
     });
   }
 
-
   function applyTemplate(t: typeof TEMPLATES[0]) {
     setTaskType(t.taskType as TaskType);
     setCriteria(t.criteria as any);
@@ -534,7 +514,6 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
         sprintId: sprintId.trim() || undefined,
         manualCriteria: criteria,
       });
-      // Baz işten yüklendiyse ve kriter değiştirilmediyse baz işin SP'sini kullan
       if (activeBaseline && !baselineDirty) {
         data.suggestedSP = activeBaseline.storyPoints;
         data.engines.ruleBased.sp = activeBaseline.storyPoints;
@@ -585,21 +564,21 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
           </div>
           <div className="stat-card">
             <div className="stat-label">Onaylanan</div>
-            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#6ee7b7' }}>{summary.approved}</div>
+            <div className="stat-value-green">{summary.approved}</div>
           </div>
           {summary.pending > 0 && (
             <div className="stat-card-warn">
               <div className="stat-label">Bekleyen Onay</div>
-              <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#fbbf24' }}>{summary.pending}</div>
+              <div className="stat-value-amber">{summary.pending}</div>
             </div>
           )}
           {summary.meanError !== null && (
             <div className="stat-card">
               <div className="stat-label">Ort. Sapma</div>
-              <div style={{ fontWeight: 700, fontSize: '1.1rem', color: summary.meanError > 0.2 ? '#fbbf24' : '#6ee7b7' }}>
+              <div className={summary.meanError > 0.2 ? 'stat-value-amber' : 'stat-value-green'}>
                 %{(summary.meanError * 100).toFixed(0)}
                 {summary.direction && summary.direction !== 'balanced' && (
-                  <span style={{ fontSize: '0.72rem', marginLeft: '4px', color: '#64748b' }}>
+                  <span style={{ fontSize: '0.72rem', marginLeft: '4px' }} className="criterion-desc">
                     ({summary.direction === 'over' ? 'fazla' : 'eksik'})
                   </span>
                 )}
@@ -611,14 +590,11 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
 
       {/* PBI Metin Analizi */}
       <div style={{ marginBottom: '0.5rem' }}>
-        <button
-          onClick={() => setShowAnalyzePanel(p => !p)}
-          style={{ background: 'none', border: '1px solid #334155', borderRadius: '6px', color: '#64748b', fontSize: '0.78rem', padding: '0.3rem 0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-        >
+        <button className="collapsible-btn" onClick={() => setShowAnalyzePanel(p => !p)}>
           <span style={{ fontSize: '0.65rem' }}>{showAnalyzePanel ? '▲' : '▼'}</span>
           Metinden Otomatik Doldur
           {Object.keys(autoFilledKeys).length > 0 && (
-            <span style={{ color: '#6ee7b7', marginLeft: '4px' }}>· {Object.keys(autoFilledKeys).length} kriter dolduruldu</span>
+            <span className="collapsible-filled">· {Object.keys(autoFilledKeys).length} kriter dolduruldu</span>
           )}
         </button>
         {showAnalyzePanel && (
@@ -634,9 +610,9 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                 onChange={e => setPbiDesc(e.target.value)}
                 placeholder="Açıklama / acceptance criteria (isteğe bağlı)"
                 rows={2}
-                style={{ resize: 'vertical', padding: '0.5rem', border: '1px solid #334155', borderRadius: '6px', background: '#1e293b', color: '#e2e8f0', fontFamily: 'inherit', fontSize: '0.85rem' }}
+                style={{ resize: 'vertical', padding: '0.5rem', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: '0.85rem' }}
               />
-              {analyzeError && <div style={{ fontSize: '0.78rem', color: '#fca5a5' }}>{analyzeError}</div>}
+              {analyzeError && <div className="error" style={{ margin: 0 }}>{analyzeError}</div>}
             </div>
             <button
               onClick={handleAnalyze}
@@ -652,14 +628,11 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
 
       {/* Collapsible kaynak panel */}
       <div style={{ marginBottom: '0.75rem' }}>
-        <button
-          onClick={() => setShowSourcePanel(p => !p)}
-          style={{ background: 'none', border: '1px solid #334155', borderRadius: '6px', color: '#64748b', fontSize: '0.78rem', padding: '0.3rem 0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-        >
+        <button className="collapsible-btn" onClick={() => setShowSourcePanel(p => !p)}>
           <span style={{ fontSize: '0.65rem' }}>{showSourcePanel ? '▲' : '▼'}</span>
           Kaynak Sistem / İş Kalemi / Sprint
           {(sourceId || sprintId) && (
-            <span style={{ color: '#38bdf8', marginLeft: '4px' }}>
+            <span className="collapsible-filled">
               {[sourceId, sprintId].filter(Boolean).join(' · ')}
             </span>
           )}
@@ -682,23 +655,23 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
         )}
       </div>
 
-      {/* Görev Tipi + Aksiyon butonları — tek satır */}
+      {/* Görev Tipi + Aksiyon butonları */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', alignItems: 'flex-end' }}>
         <label style={{ flex: '0 0 220px' }}>Görev Tipi
           <select value={taskType} onChange={e => {
-  const newType = e.target.value as TaskType;
-  const newKeys = new Set((CRITERIA_BY_TASK_TYPE[newType] ?? []).map(c => c.key));
-  setTaskType(newType);
-  setCriteria(prev => {
-    const kept: typeof prev = { teamMemberCount: { type: 'count', value: 1 } };
-    for (const [k, v] of Object.entries(prev)) {
-      if (newKeys.has(k)) kept[k] = v;
-    }
-    return kept;
-  });
-  setAutoFilledKeys(prev => Object.fromEntries(Object.entries(prev).filter(([k]) => newKeys.has(k))));
-  setResult(null);
-}}>
+            const newType = e.target.value as TaskType;
+            const newKeys = new Set((CRITERIA_BY_TASK_TYPE[newType] ?? []).map(c => c.key));
+            setTaskType(newType);
+            setCriteria(prev => {
+              const kept: typeof prev = { teamMemberCount: { type: 'count', value: 1 } };
+              for (const [k, v] of Object.entries(prev)) {
+                if (newKeys.has(k)) kept[k] = v;
+              }
+              return kept;
+            });
+            setAutoFilledKeys(prev => Object.fromEntries(Object.entries(prev).filter(([k]) => newKeys.has(k))));
+            setResult(null);
+          }}>
             {TASK_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </label>
@@ -707,16 +680,16 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
             {loading ? 'Hesaplanıyor...' : 'Tahmin Et'}
           </button>
           <button onClick={handleReset}>Temizle</button>
-          <button onClick={() => setShowTemplates(!showTemplates)} style={{ color: '#38bdf8' }}>
+          <button onClick={() => setShowTemplates(!showTemplates)} className={showTemplates ? 'active' : ''}>
             {showTemplates ? 'Kapat' : 'Şablonlar'}
           </button>
           {activeBaseline && (
-            <span style={{ fontSize: '0.75rem', background: baselineDirty ? '#1c1917' : '#0c1e35', color: baselineDirty ? '#fbbf24' : '#38bdf8', border: `1px solid ${baselineDirty ? '#78350f' : '#0369a1'}`, borderRadius: '5px', padding: '0.25rem 0.6rem' }}>
+            <span className={`active-baseline-chip ${baselineDirty ? 'dirty' : 'clean'}`}>
               {baselineDirty ? '✎ Baz iş değiştirildi' : `Baz iş: ${activeBaseline.title} (${activeBaseline.storyPoints} SP)`}
             </span>
           )}
           {!canEstimate && (
-            <span style={{ fontSize: '0.78rem', color: '#475569' }}>
+            <span style={{ fontSize: '0.78rem' }} className="criterion-desc">
               En az 3 kriter doldur ({nonBooleanFilled}/3)
             </span>
           )}
@@ -725,34 +698,25 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
 
       {showTemplates && (
         <div style={{ margin: '0 0 1rem' }}>
-          {/* Baz işlerden hızlı seçim */}
           {baselines.length > 0 && (
             <>
-              <div style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
-                Baz İşler
-              </div>
+              <div className="section-label-accent">Baz İşler</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem', marginBottom: '1rem' }}>
                 {baselines.map(b => {
                   const snap = b.criteriaSnapshot as Record<string, CriteriaValue> | null;
                   const criteriaCount = snap ? Object.keys(snap).filter(k => !BOOLEAN_CRITERIA.includes(k as any)).length : 0;
                   return (
-                    <button
-                      key={b.id}
-                      onClick={() => applyBaseline(b)}
-                      style={{ background: '#0c1e35', border: '2px solid #0369a1', borderRadius: '8px', padding: '0.75rem', textAlign: 'left', cursor: 'pointer', color: '#e2e8f0' }}
-                    >
+                    <button key={b.id} onClick={() => applyBaseline(b)} className="template-baseline-btn">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '4px' }}>
-                        <span style={{ background: '#0c4a6e', color: '#38bdf8', fontWeight: 700, fontSize: '0.9rem', minWidth: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '5px' }}>
-                          {b.storyPoints}
-                        </span>
+                        <span className="template-sp-pill">{b.storyPoints}</span>
                         <span style={{ fontWeight: 600, fontSize: '0.85rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title}</span>
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: '#38bdf8' }}>
+                      <div style={{ fontSize: '0.72rem' }} className="stat-value-accent">
                         {b.taskType ? (TASK_TYPE_LABELS[b.taskType] ?? b.taskType) : 'Genel'}
-                        {criteriaCount > 0 && <span style={{ color: '#475569', marginLeft: '6px' }}>{criteriaCount} kriter</span>}
+                        {criteriaCount > 0 && <span style={{ marginLeft: '6px' }} className="criterion-desc">{criteriaCount} kriter</span>}
                       </div>
                       {b.description && (
-                        <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: '0.72rem', marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} className="criterion-desc">
                           {b.description}
                         </div>
                       )}
@@ -763,17 +727,13 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
             </>
           )}
 
-          {/* Sistem şablonları */}
-          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
-            Sistem Şablonları
-          </div>
+          <div className="section-label-muted">Sistem Şablonları</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem' }}>
             {TEMPLATES.map((t, i) => (
-              <button key={i} onClick={() => applyTemplate(t)}
-                style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem', textAlign: 'left', cursor: 'pointer', color: '#e2e8f0' }}>
+              <button key={i} onClick={() => applyTemplate(t)} className="template-system-btn">
                 <div style={{ fontWeight: 600, marginBottom: '4px', fontSize: '0.85rem' }}>{t.name}</div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{t.description}</div>
-                <div style={{ fontSize: '0.7rem', color: '#475569', marginTop: '4px' }}>{TASK_TYPE_LABELS[t.taskType]}</div>
+                <div style={{ fontSize: '0.72rem' }} className="criterion-desc">{t.description}</div>
+                <div style={{ fontSize: '0.7rem', marginTop: '4px' }} className="stat-value-muted">{TASK_TYPE_LABELS[t.taskType]}</div>
               </button>
             ))}
           </div>
@@ -782,11 +742,11 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
 
       <h3>
         Kriterler{' '}
-        <small style={{ color: '#64748b', fontWeight: 400 }}>({filledCount}/{totalCount} dolduruldu)</small>
+        <small style={{ fontWeight: 400 }} className="criterion-desc">({filledCount}/{totalCount} dolduruldu)</small>
         {filledCount > 0 && totalCount > 0 && (
-          <div style={{ display: 'inline-block', width: '100px', height: '6px', background: '#334155', borderRadius: '3px', marginLeft: '8px', verticalAlign: 'middle' }}>
-            <div style={{ width: `${(filledCount / totalCount) * 100}%`, height: '100%', background: '#38bdf8', borderRadius: '3px', transition: 'width 0.3s' }} />
-          </div>
+          <span className="progress-track">
+            <span className="progress-fill" style={{ width: `${(filledCount / totalCount) * 100}%` }} />
+          </span>
         )}
       </h3>
       <div className="criteria-list" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', overflow: 'hidden' }}>
@@ -806,12 +766,11 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                 gridColumn: isLastAndAlone ? 'span 2' : undefined,
                 minWidth: 0,
               }}>
-              {/* Sol: etiket */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="criterion-name" style={{ fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '5px' }}>
                   {criteriaLabel(c.key)}
                   {autoFilledKeys[c.key] && (
-                    <span style={{ fontSize: '0.62rem', background: autoFilledKeys[c.key] === 'llm' ? '#052e16' : '#0c2540', color: autoFilledKeys[c.key] === 'llm' ? '#6ee7b7' : '#38bdf8', border: `1px solid ${autoFilledKeys[c.key] === 'llm' ? '#166534' : '#0369a1'}`, borderRadius: '3px', padding: '0 4px', flexShrink: 0 }}>
+                    <span className={autoFilledKeys[c.key] === 'llm' ? 'badge-green' : 'badge-accent'}>
                       {autoFilledKeys[c.key] === 'llm' ? 'AI' : 'auto'}
                     </span>
                   )}
@@ -824,7 +783,6 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                 </div>
               </div>
 
-              {/* Sağ: input — hep sağa dayalı */}
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
                 {c.type === 'scale5' && [1, 2, 3, 4, 5].map(v => {
                   const active = selectedVal === v;
@@ -840,7 +798,6 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                         fontWeight: active ? 700 : 400,
                         fontSize: '0.78rem', cursor: 'pointer',
                         flexShrink: 0, padding: 0,
-                        transition: 'background 0.1s, border-color 0.1s',
                       }}
                     >
                       {v}
@@ -868,7 +825,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                       checked={(selectedVal as boolean) ?? false}
                       onChange={e => setCriterion(c.key, 'boolean', e.target.checked)}
                     />
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', minWidth: '36px' }}>
+                    <span style={{ fontSize: '0.78rem', minWidth: '36px' }} className="criterion-desc">
                       {(selectedVal as boolean) ? 'Evet' : 'Hayır'}
                     </span>
                   </label>
@@ -881,7 +838,6 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
 
       {error && <div className="error">{error}</div>}
 
-      {/* Baz iş referans kartları */}
       {result && <BaselineRefs baselines={baselines} taskType={result.taskType} suggestedSP={result.suggestedSP} currentCriteria={criteria} teamId={teamId} />}
 
       {result && (
@@ -893,17 +849,17 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
               <div><strong>Teknik:</strong> {TECHNIQUE_LABELS[result.technique] ?? result.technique}</div>
               <div>
                 <strong>Güven Skoru:</strong>{' '}
-                <span style={{ color: confidenceColor(result.confidenceScore), fontWeight: 600 }}>
+                <span className={`${confidenceClass(result.confidenceScore)}`} style={{ fontWeight: 600 }}>
                   %{(result.confidenceScore * 100).toFixed(0)}
                 </span>
                 {result.confidenceScore < 0.5 && (
-                  <span style={{ color: '#fbbf24', fontSize: '0.8rem' }}> — Daha fazla kriter doldurun</span>
+                  <span className="stat-value-amber" style={{ fontSize: '0.8rem' }}> — Daha fazla kriter doldurun</span>
                 )}
               </div>
               {result.confidenceLow != null && result.confidenceHigh != null && (
                 <div>
                   <strong>Tahmin Aralığı:</strong> {result.confidenceLow} – {result.confidenceHigh} SP
-                  <small style={{ color: '#64748b', marginLeft: '6px' }}>
+                  <small className="criterion-desc" style={{ marginLeft: '6px' }}>
                     (güven {result.confidenceScore >= 0.8 ? 'yüksek → ±1' : result.confidenceScore >= 0.5 ? 'orta → ±2' : 'düşük → ±3'} adım)
                   </small>
                 </div>
@@ -911,18 +867,11 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
             </div>
           </div>
 
-          {/* Güven bar */}
-          <div style={{ margin: '0.75rem 0' }}>
-            <div style={{ width: '100%', height: '8px', background: '#334155', borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{
-                width: `${result.confidenceScore * 100}%`, height: '100%',
-                background: 'linear-gradient(90deg, #fca5a5, #fbbf24, #6ee7b7)',
-                borderRadius: '4px', transition: 'width 0.5s',
-              }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#64748b', marginTop: '2px' }}>
-              <span>Düşük</span><span>Orta</span><span>Yüksek</span>
-            </div>
+          <div className="confidence-track">
+            <div className="confidence-fill" style={{ width: `${result.confidenceScore * 100}%` }} />
+          </div>
+          <div className="confidence-labels">
+            <span>Düşük</span><span>Orta</span><span>Yüksek</span>
           </div>
 
           {result.missingCriteria.length > 0 && (
@@ -932,7 +881,6 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
             </div>
           )}
 
-          {/* Bar chart + Tahmin/Baz karşılaştırma */}
           {(() => {
             const maxC = Math.max(...Object.values(result.breakdown).filter(x => x.rawValue.type !== 'boolean').map(x => x.contribution), 0.01);
             const rows = Object.entries(result.breakdown)
@@ -954,31 +902,28 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
 
             return (
               <>
-                {/* Başlık satırı */}
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
                   <h4 style={{ flex: 1, margin: 0 }}>Kriter Katkıları</h4>
                   {topBaseline && (
                     <div style={{ display: 'flex', gap }}>
-                      <div style={{ width: colW, textAlign: 'right', fontSize: '0.68rem', fontWeight: 600, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tahmin</div>
-                      <div style={{ width: colW, textAlign: 'right', fontSize: '0.68rem', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Baz</div>
+                      <div style={{ width: colW, textAlign: 'right', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }} className="stat-value-accent">Tahmin</div>
+                      <div style={{ width: colW, textAlign: 'right', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }} className="criterion-desc">Baz</div>
                     </div>
                   )}
                 </div>
 
-                {/* Veri satırları */}
                 <div style={{ display: 'flex', gap, marginBottom: '1rem', alignItems: 'flex-start' }}>
-                  {/* Bar chart */}
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {rows.map(([key, b]) => {
                       const pct = (b.contribution / maxC) * 100;
                       return (
                         <div key={key} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
-                          <div style={{ textAlign: 'right', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div style={{ textAlign: 'right' }} className="criterion-desc">
                             {criteriaLabel(key)}
                           </div>
-                          <div style={{ height: '22px', background: '#0f172a', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
-                            <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #38bdf855, #38bdf8)', borderRadius: '4px', transition: 'width 0.3s' }} />
-                            <span style={{ position: 'absolute', right: '6px', top: '3px', fontSize: '0.7rem', color: '#94a3b8' }}>
+                          <div className="breakdown-track">
+                            <div className="breakdown-fill" style={{ width: `${pct}%` }} />
+                            <span style={{ position: 'absolute', right: '6px', top: '3px', fontSize: '0.7rem' }} className="criterion-desc">
                               {b.contribution.toFixed(2)}
                             </span>
                           </div>
@@ -987,30 +932,28 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                     })}
                     {boolRows.map(([key]) => (
                       <div key={key} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
-                        <div style={{ textAlign: 'right', color: '#94a3b8', whiteSpace: 'nowrap' }}>{criteriaLabel(key)}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#fbbf24' }}>✕ çarpan olarak uygulandı</div>
+                        <div style={{ textAlign: 'right' }} className="criterion-desc">{criteriaLabel(key)}</div>
+                        <div style={{ fontSize: '0.75rem' }} className="stat-value-amber">✕ çarpan olarak uygulandı</div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Tahmin + Baz sütunları */}
                   {topBaseline && (
                     <div style={{ display: 'flex', gap, flexShrink: 0 }}>
-                      {/* Tahmin */}
                       <div style={{ width: colW, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {rows.map(([key, b]) => (
-                          <div key={key} style={{ height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontSize: '0.85rem', color: '#94a3b8', fontWeight: 500 }}>
+                          <div key={key} style={{ height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontSize: '0.85rem', fontWeight: 500 }} className="criterion-desc">
                             {String(b.rawValue.value)}
                           </div>
                         ))}
                       </div>
-                      {/* Baz */}
                       <div style={{ width: colW, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {rows.map(([key, b]) => {
                           const bazRaw = topBaseline.snap[key];
                           const isDiff = bazRaw !== undefined && bazRaw.value !== b.rawValue.value;
                           return (
-                            <div key={key} style={{ height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontSize: '0.85rem', color: isDiff ? '#fbbf24' : '#334155', fontWeight: isDiff ? 600 : 400 }}>
+                            <div key={key} style={{ height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontSize: '0.85rem', fontWeight: isDiff ? 600 : 400 }}
+                              className={isDiff ? 'stat-value-amber' : 'criterion-desc'}>
                               {bazRaw ? String(bazRaw.value) : ''}
                             </div>
                           );
@@ -1023,35 +966,35 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
             );
           })()}
 
-          <details style={{ fontSize: '0.8rem', color: '#94a3b8', background: '#0f172a', padding: '0.75rem', borderRadius: '6px', cursor: 'pointer', marginBottom: '1rem' }}>
-            <summary style={{ fontWeight: 600, color: '#e2e8f0', marginBottom: '0.5rem' }}>
-              Nasıl hesaplandı? — Ham skor: <strong style={{ color: '#38bdf8' }}>{result.engines.ruleBased.rawScore.toFixed(2)}</strong> / 10.00
-              → <strong style={{ color: '#38bdf8' }}>{result.suggestedSP} SP</strong>
+          <details className="explanation-panel">
+            <summary>
+              Nasıl hesaplandı? — Ham skor: <strong style={{ color: 'var(--accent-text)' }}>{result.engines.ruleBased.rawScore.toFixed(2)}</strong> / 10.00
+              → <strong style={{ color: 'var(--accent-text)' }}>{result.suggestedSP} SP</strong>
             </summary>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem', lineHeight: 1.7 }}>
-              <div><strong style={{ color: '#e2e8f0' }}>1. Normalizasyon</strong><div>Her kriter 0–10 aralığına dönüştürülür. Ölçek kriterleri (1–5) iki ile çarpılır → 2–10. Sayısal kriterler logaritmik ölçeklenir (1→2, 3→4, 7→6, 15→8, 31→10).</div></div>
-              <div><strong style={{ color: '#e2e8f0' }}>2. Ters kriterler</strong><div>Takım Alan Bilgisi, Kök Neden Netliği ve Otomasyon Kolaylığı ters çevrilir (10 − değer). Yüksek değer "kolay" demektir, bu yüzden düşük katkı verir.</div></div>
-              <div><strong style={{ color: '#e2e8f0' }}>3. Ağırlıklı toplam</strong><div>Her kriterin normalize skoru, görev tipine özel ağırlığı ile çarpılır ve toplanır. Ağırlıklar toplamı %100'dür, yani ham skor 0–10 aralığında kalır.</div></div>
-              <div><strong style={{ color: '#e2e8f0' }}>4. Boolean çarpanlar</strong><div>Güvenlik kısıtı (×1.20), performans kısıtı (×1.15), kesinti gereksinimi (×1.25) gibi boolean kriterler toplam skoru çarpan olarak artırır. Benzer geçmiş varsa ×0.80 ile azaltır.</div></div>
-              <div><strong style={{ color: '#e2e8f0' }}>5. SP eşleme</strong><div>Ham skor, seçili tekniğin eşik tablosuna göre SP değerine dönüştürülür.
+              <div><strong style={{ color: 'var(--text-primary)' }}>1. Normalizasyon</strong><div>Her kriter 0–10 aralığına dönüştürülür. Ölçek kriterleri (1–5) iki ile çarpılır → 2–10. Sayısal kriterler logaritmik ölçeklenir (1→2, 3→4, 7→6, 15→8, 31→10).</div></div>
+              <div><strong style={{ color: 'var(--text-primary)' }}>2. Ters kriterler</strong><div>Takım Alan Bilgisi, Kök Neden Netliği ve Otomasyon Kolaylığı ters çevrilir (10 − değer). Yüksek değer "kolay" demektir, bu yüzden düşük katkı verir.</div></div>
+              <div><strong style={{ color: 'var(--text-primary)' }}>3. Ağırlıklı toplam</strong><div>Her kriterin normalize skoru, görev tipine özel ağırlığı ile çarpılır ve toplanır. Ağırlıklar toplamı %100'dür, yani ham skor 0–10 aralığında kalır.</div></div>
+              <div><strong style={{ color: 'var(--text-primary)' }}>4. Boolean çarpanlar</strong><div>Güvenlik kısıtı (×1.20), performans kısıtı (×1.15), kesinti gereksinimi (×1.25) gibi boolean kriterler toplam skoru çarpan olarak artırır. Benzer geçmiş varsa ×0.80 ile azaltır.</div></div>
+              <div><strong style={{ color: 'var(--text-primary)' }}>5. SP eşleme</strong><div>Ham skor, seçili tekniğin eşik tablosuna göre SP değerine dönüştürülür.
                 {result.technique === 'FIBONACCI' && <> Fibonacci: &lt;1.5→1, &lt;2.5→2, &lt;3.5→3, &lt;5.0→5, &lt;6.5→8, &lt;7.5→13, &lt;8.5→21, &lt;9.5→34, 9.5+→55</>}
                 {result.technique === 'TSHIRT' && <> Tişört: &lt;2.0→XS, &lt;3.5→S, &lt;5.0→M, &lt;7.0→L, &lt;8.5→XL, 8.5+→XXL</>}
                 {result.technique === 'POWERS_OF_TWO' && <> İkinin Kuvvetleri: &lt;2.0→1, &lt;3.5→2, &lt;5.5→4, &lt;7.5→8, &lt;9.0→16, 9.0+→32</>}
                 {result.technique === 'LINEAR' && <> Doğrusal: &lt;1.0→1, &lt;2.0→2, ... &lt;9.0→9, 9.0+→10</>}
               </div></div>
-              <div><strong style={{ color: '#e2e8f0' }}>6. Güven skoru</strong><div>Doldurulan kriter oranı (%50 ağırlık) + kapsam netliği (%20) + benzer geçmiş (%15) ile hesaplanır. Güven düşükse tahmin aralığı genişler.</div></div>
+              <div><strong style={{ color: 'var(--text-primary)' }}>6. Güven skoru</strong><div>Doldurulan kriter oranı (%50 ağırlık) + kapsam netliği (%20) + benzer geçmiş (%15) ile hesaplanır. Güven düşükse tahmin aralığı genişler.</div></div>
             </div>
           </details>
 
           {approveSuccess != null ? (
-            <div style={{ background: '#065f46', border: '1px solid #6ee7b7', borderRadius: '8px', padding: '0.75rem 1rem', color: '#6ee7b7', marginTop: '1rem' }}>
+            <div className="approve-success">
               ✓ Gerçek SP değeri <strong>{approveSuccess}</strong> olarak kaydedildi. Sistem bu veriyi ilerleyen kalibrasyon için kullanacak.
             </div>
           ) : (
-            <div style={{ marginTop: '1.25rem', borderTop: '1px solid #334155', paddingTop: '1rem' }}>
+            <div style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
               <div style={{ marginBottom: '0.5rem' }}>
                 <strong>Onayla — Gerçek SP değeri neydi?</strong>
-                <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '0.75rem' }}>
+                <span style={{ fontSize: '0.75rem', marginLeft: '0.75rem' }} className="criterion-desc">
                   Seçiminiz sistemi eğitmek için kaydedilir, gelecek tahminler daha doğru olur.
                 </span>
               </div>
@@ -1060,14 +1003,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                   <button
                     key={sp}
                     onClick={() => handleApprove(sp)}
-                    style={{
-                      width: '48px', height: '40px',
-                      background: sp === result.suggestedSP ? '#0c4a6e' : '#1e293b',
-                      border: `2px solid ${sp === result.suggestedSP ? '#38bdf8' : '#334155'}`,
-                      borderRadius: '8px', color: sp === result.suggestedSP ? '#38bdf8' : '#e2e8f0',
-                      fontWeight: sp === result.suggestedSP ? 700 : 400,
-                      cursor: 'pointer', fontSize: '0.9rem',
-                    }}
+                    className={`approve-sp-btn${sp === result.suggestedSP ? ' is-suggested' : ''}`}
                   >
                     {sp}
                   </button>
@@ -1078,13 +1014,12 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
         </div>
       )}
 
-      {/* Karşılaştırma paneli */}
       {result && sessionHistory.length >= 2 && (() => {
         const compareEntry = sessionHistory.find(h => h.id === compareId);
         return (
           <div style={{ marginTop: '2rem' }}>
             <h3>Karşılaştır
-              <small style={{ fontWeight: 400, color: '#64748b', marginLeft: '8px', fontSize: '0.8rem' }}>
+              <small style={{ fontWeight: 400, marginLeft: '8px', fontSize: '0.8rem' }} className="criterion-desc">
                 Bu oturumdaki tahminlerden biriyle kıyasla
               </small>
             </h3>
@@ -1110,9 +1045,6 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
               function rawValLabel(_key: string, rv: { type: string; value: number | boolean } | undefined): string {
                 if (!rv) return '—';
                 if (rv.type === 'boolean') return rv.value ? 'Evet' : 'Hayır';
-                if (rv.type === 'scale5') {
-                  return String(rv.value);
-                }
                 return String(rv.value);
               }
 
@@ -1130,78 +1062,71 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
 
               return (
                 <div className="result-card">
-                  {/* SP özet */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem' }}>
-                    <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '1rem', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '4px' }}>Mevcut Tahmin</div>
-                      <div style={{ fontSize: '2rem', fontWeight: 700, color: '#38bdf8' }}>{cur.suggestedSP} SP</div>
-                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                        Güven %{(cur.confidenceScore * 100).toFixed(0)}
-                      </div>
+                    <div className="compare-box">
+                      <div style={{ fontSize: '0.7rem', marginBottom: '4px' }} className="criterion-desc">Mevcut Tahmin</div>
+                      <div className="compare-sp">{cur.suggestedSP} SP</div>
+                      <div style={{ fontSize: '0.8rem' }} className="criterion-desc">Güven %{(cur.confidenceScore * 100).toFixed(0)}</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.5rem', color: spDiff > 0 ? '#fca5a5' : spDiff < 0 ? '#6ee7b7' : '#64748b' }}>
+                      <div style={{ fontSize: '1.5rem' }} className={spDiff > 0 ? 'stat-value-red' : spDiff < 0 ? 'stat-value-green' : 'criterion-desc'}>
                         {spDiff > 0 ? '▲' : spDiff < 0 ? '▼' : '='} {Math.abs(spDiff)}
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>SP farkı</div>
+                      <div style={{ fontSize: '0.7rem' }} className="criterion-desc">SP farkı</div>
                     </div>
-                    <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '1rem', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '4px' }}>{compareEntry.label}</div>
-                      <div style={{ fontSize: '2rem', fontWeight: 700, color: '#38bdf8' }}>{prev.suggestedSP} SP</div>
-                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                        Güven %{(prev.confidenceScore * 100).toFixed(0)}
-                      </div>
+                    <div className="compare-box">
+                      <div style={{ fontSize: '0.7rem', marginBottom: '4px' }} className="criterion-desc">{compareEntry.label}</div>
+                      <div className="compare-sp">{prev.suggestedSP} SP</div>
+                      <div style={{ fontSize: '0.8rem' }} className="criterion-desc">Güven %{(prev.confidenceScore * 100).toFixed(0)}</div>
                     </div>
                   </div>
 
-                  {/* Kriter farkları */}
                   {diffs.length > 0 && (
                     <>
                       <h4 style={{ marginBottom: '0.5rem' }}>
                         {spDiff > 0 ? 'Bu tahmin neden daha yüksek?' : spDiff < 0 ? 'Bu tahmin neden daha düşük?' : 'Kriter farkları'}
                       </h4>
-                      <div style={{ display: 'grid', gridTemplateColumns: '160px 20px 1fr 60px 120px', gap: '8px', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', paddingBottom: '4px', borderBottom: '1px solid #1e293b' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '160px 20px 1fr 60px 120px', gap: '8px', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', paddingBottom: '4px', borderBottom: '1px solid var(--border)' }}>
                         <div /><div /><div />
-                        <div style={{ color: '#38bdf8', textAlign: 'center' }}>Mevcut</div>
-                        <div style={{ color: '#475569', textAlign: 'center' }}>Karşılaştırılan</div>
+                        <div style={{ textAlign: 'center' }} className="stat-value-accent">Mevcut</div>
+                        <div style={{ textAlign: 'center' }} className="criterion-desc">Karşılaştırılan</div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {diffs.map(d => (
                           <div key={d.key} style={{ display: 'grid', gridTemplateColumns: '160px 20px 1fr 60px 120px', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
-                            <div style={{ textAlign: 'right', color: '#94a3b8' }}>{criteriaLabel(d.key)}</div>
-                            <div style={{ textAlign: 'center', color: d.diff > 0 ? '#fca5a5' : '#6ee7b7' }}>
+                            <div style={{ textAlign: 'right' }} className="criterion-desc">{criteriaLabel(d.key)}</div>
+                            <div style={{ textAlign: 'center' }} className={d.diff > 0 ? 'stat-value-red' : 'stat-value-green'}>
                               {d.diff > 0 ? '▲' : '▼'}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <div style={{
                                 height: '14px', borderRadius: '3px', minWidth: '4px',
                                 width: `${Math.min(100, Math.abs(d.diff) * 50)}%`,
-                                background: d.diff > 0 ? '#fca5a544' : '#6ee7b744',
-                                border: `1px solid ${d.diff > 0 ? '#fca5a5' : '#6ee7b7'}`,
+                                background: d.diff > 0 ? 'var(--red-dim)' : 'var(--green-dim)',
+                                border: `1px solid ${d.diff > 0 ? 'var(--red-border)' : 'var(--green-border)'}`,
                               }} />
-                              <span style={{ color: d.diff > 0 ? '#fca5a5' : '#6ee7b7', fontSize: '0.75rem' }}>
+                              <span style={{ fontSize: '0.75rem' }} className={d.diff > 0 ? 'stat-value-red' : 'stat-value-green'}>
                                 {d.diff > 0 ? '+' : ''}{d.diff.toFixed(2)}
                               </span>
                             </div>
-                            <div style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 600 }}>{d.curLabel}</div>
-                            <div style={{ textAlign: 'center', color: '#475569' }}>{d.prevLabel}</div>
+                            <div style={{ textAlign: 'center', fontWeight: 600 }} className="criterion-desc">{d.curLabel}</div>
+                            <div style={{ textAlign: 'center' }} className="criterion-desc">{d.prevLabel}</div>
                           </div>
                         ))}
                       </div>
-                      <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.75rem' }} className="criterion-desc">
                         Toplam skor farkı:{' '}
-                        <strong style={{ color: scoreDiff > 0 ? '#fca5a5' : '#6ee7b7' }}>
+                        <strong className={scoreDiff > 0 ? 'stat-value-red' : 'stat-value-green'}>
                           {scoreDiff > 0 ? '+' : ''}{scoreDiff.toFixed(2)}
                         </strong>
                       </div>
                     </>
                   )}
                   {diffs.length === 0 && (
-                    <div style={{ color: '#64748b', fontSize: '0.85rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.85rem', textAlign: 'center' }} className="criterion-desc">
                       Sayısal kriter farkı yok — fark boolean çarpanlardan veya farklı görev tipinden kaynaklanıyor olabilir.
                     </div>
                   )}
-
                 </div>
               );
             })()}

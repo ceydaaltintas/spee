@@ -70,7 +70,6 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
     setFilterType('');
     setFilterSprint('');
     offsetRef.current = 0;
-    // use timeout so state clears before fetch
     setTimeout(() => loadHistory(0, true), 0);
   }
 
@@ -114,6 +113,12 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
 
   const hasMore = items.length < total;
 
+  function completionSelectClass(val: boolean | null): string {
+    if (val === true) return 'completion-done';
+    if (val === false) return 'completion-fail';
+    return '';
+  }
+
   return (
     <div>
       <h2>Tahmin Geçmişi</h2>
@@ -142,7 +147,7 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
       {loading ? <p>Yükleniyor...</p> : (
         <>
           {total > 0 && (
-            <div style={{ fontSize: '0.78rem', color: '#475569', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: '0.78rem', marginBottom: '0.5rem' }} className="criterion-desc">
               {items.length} / {total} kayıt gösteriliyor
             </div>
           )}
@@ -156,17 +161,26 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
             return (
               <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
                 <div className="stat-card"><div className="stat-label">Planlanan SP</div><div className="stat-value">{sprintStat?.plannedSP ?? '—'}</div></div>
-                <div className="stat-card"><div className="stat-label">Tamamlanan SP</div><div className="stat-value" style={{ color: '#6ee7b7' }}>{sprintStat?.completedSP ?? '—'}</div></div>
-                <div className="stat-card"><div className="stat-label">Tamamlanamayan SP</div><div className="stat-value" style={{ color: '#fca5a5' }}>{sprintStat?.notCompletedSP ?? '—'}</div></div>
-                {completionRate !== null && <div className="stat-card"><div className="stat-label">Tamamlanma</div><div className="stat-value" style={{ color: completionRate >= 70 ? '#6ee7b7' : completionRate >= 40 ? '#fbbf24' : '#fca5a5' }}>%{completionRate}</div></div>}
-                <div className="stat-card"><div className="stat-label">Belirsiz PBI</div><div className="stat-value" style={{ color: '#94a3b8' }}>{unmarkedCount}</div></div>
+                <div className="stat-card"><div className="stat-label">Tamamlanan SP</div><div className="stat-value-green">{sprintStat?.completedSP ?? '—'}</div></div>
+                <div className="stat-card"><div className="stat-label">Tamamlanamayan SP</div><div className="stat-value-red">{sprintStat?.notCompletedSP ?? '—'}</div></div>
+                {completionRate !== null && (
+                  <div className="stat-card">
+                    <div className="stat-label">Tamamlanma</div>
+                    <div className={completionRate >= 70 ? 'stat-value-green' : completionRate >= 40 ? 'stat-value-amber' : 'stat-value-red'}>
+                      %{completionRate}
+                    </div>
+                  </div>
+                )}
+                <div className="stat-card"><div className="stat-label">Belirsiz PBI</div><div className="stat-value-muted">{unmarkedCount}</div></div>
               </div>
             );
           })()}
           {!filterSprint && sprintStats && sprintStats.sprints.length > 1 && (
             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
               <div className="stat-card"><div className="stat-label">Sprint Sayısı</div><div className="stat-value">{sprintStats.sprints.length}</div></div>
-              {sprintStats.avgCompletedSP !== null && <div className="stat-card"><div className="stat-label">Ort. Velocity</div><div className="stat-value" style={{ color: '#38bdf8' }}>{sprintStats.avgCompletedSP} SP</div></div>}
+              {sprintStats.avgCompletedSP !== null && (
+                <div className="stat-card"><div className="stat-label">Ort. Velocity</div><div className="stat-value-accent">{sprintStats.avgCompletedSP} SP</div></div>
+              )}
             </div>
           )}
           <table>
@@ -184,21 +198,21 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
               </tr>
             </thead>
             <tbody>
-              {items.length === 0 && <tr><td colSpan={9} style={{ color: '#64748b' }}>Kayıt bulunamadı</td></tr>}
+              {items.length === 0 && <tr><td colSpan={9} className="criterion-desc">Kayıt bulunamadı</td></tr>}
               {items.map(item => (
                 <tr key={item.estimationId}>
                   <td>
                     <strong>{item.sourceId}</strong>
                     {item.title && item.title !== item.sourceId && (
-                      <><br /><small style={{ color: '#64748b' }}>{item.title}</small></>
+                      <><br /><small className="criterion-desc">{item.title}</small></>
                     )}
                   </td>
-                  <td style={{ color: '#64748b', fontSize: '0.8rem' }}>{(item as any).sprintId ?? '–'}</td>
+                  <td style={{ fontSize: '0.8rem' }} className="criterion-desc">{(item as any).sprintId ?? '–'}</td>
                   <td>{TASK_TYPE_LABELS[item.taskType] ?? item.taskType}</td>
                   <td className="sp">{item.suggestedSP}</td>
                   <td>
                     {item.approvedSP ? (
-                      <span className="sp" style={{ color: '#6ee7b7' }}>{item.approvedSP}</span>
+                      <span className="sp stat-value-green">{item.approvedSP}</span>
                     ) : (
                       <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                         <input
@@ -226,14 +240,15 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
                     <select
                       value={completionMap[item.estimationId] === true ? 'true' : completionMap[item.estimationId] === false ? 'false' : ''}
                       onChange={e => handleCompletion(item.estimationId, e.target.value === '' ? null : e.target.value === 'true')}
-                      style={{ fontSize: '0.78rem', padding: '2px 4px', background: completionMap[item.estimationId] === true ? '#052e16' : completionMap[item.estimationId] === false ? '#2d0a0a' : undefined, color: completionMap[item.estimationId] === true ? '#6ee7b7' : completionMap[item.estimationId] === false ? '#fca5a5' : '#64748b' }}
+                      className={`completion-select ${completionSelectClass(completionMap[item.estimationId] ?? null)}`}
+                      style={{ fontSize: '0.78rem', padding: '2px 4px' }}
                     >
                       <option value="">—</option>
                       <option value="true">✓ Tamamlandı</option>
                       <option value="false">✗ Tamamlanamadı</option>
                     </select>
                   </td>
-                  <td style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  <td style={{ fontSize: '0.8rem' }} className="criterion-desc">
                     {new Date(item.createdAt).toLocaleDateString('tr-TR')}
                   </td>
                   <td>

@@ -875,3 +875,188 @@ td.sp {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ── Collapsible toggle buttons ────────────────────────────────── */
+.collapsible-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: inherit;
+  transition: background var(--t), color var(--t), border-color var(--t);
+}
+.collapsible-btn:hover { background: var(--bg-elevated); color: var(--text-secondary); border-color: var(--border-strong); }
+.collapsible-filled { color: var(--accent-text); margin-left: 4px; }
+
+/* ── Baseline reference items ──────────────────────────────────── */
+.baseline-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: background var(--t), border-color var(--t);
+}
+.baseline-item-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--t);
+}
+.baseline-item-head:hover { background: var(--bg-surface); }
+.baseline-sp-badge {
+  min-width: 40px;
+  height: 40px;
+  background: var(--accent-dim);
+  border: 2px solid var(--accent-border);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-text);
+  flex-shrink: 0;
+}
+.baseline-item-body {
+  border-top: 1px solid var(--accent-border);
+  padding: 0.75rem 1rem;
+  background: var(--bg-base);
+  transition: background var(--t), border-color var(--t);
+}
+.baseline-tag { font-size: 0.68rem; padding: 1px 5px; border-radius: 3px; white-space: nowrap; }
+.baseline-tag-accent { background: var(--accent-dim); color: var(--accent-text); border: 1px solid var(--accent-border); }
+.baseline-tag-match { background: var(--green-dim); color: var(--green); border: 1px solid var(--green-border); }
+.baseline-tag-muted { background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border); }
+.baseline-tag-warn { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber-border); }
+.criteria-chip {
+  display: inline-block;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent-border);
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+}
+.criteria-chip-key { color: var(--text-muted); }
+.criteria-chip-val { color: var(--text-primary); font-weight: 600; }
+.calib-hint-box { margin-top: 0.75rem; background: var(--amber-dim); border: 1px solid var(--amber-border); border-radius: 8px; padding: 0.75rem 1rem; }
+.calib-applied { font-size: 0.78rem; color: var(--green); background: var(--green-dim); border: 1px solid var(--green-border); border-radius: 6px; padding: 0.5rem 0.75rem; }
+.diff-note { margin-top: 0.75rem; padding: 0.4rem 0.75rem; background: var(--bg-base); border-radius: 6px; font-size: 0.75rem; color: var(--text-muted); border-left: 3px solid var(--border-strong); }
+.baseline-sp-compare { text-align: right; flex-shrink: 0; }
+
+/* ── Template grids ────────────────────────────────────────────── */
+.section-label-accent { font-size: 0.72rem; color: var(--accent-text); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+.section-label-muted { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+.template-baseline-btn {
+  background: var(--bg-elevated);
+  border: 2px solid var(--accent-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: inherit;
+  width: 100%;
+  transition: background var(--t), border-color var(--t);
+}
+.template-baseline-btn:hover { background: var(--bg-surface); border-color: var(--accent); }
+.template-sp-pill {
+  background: var(--accent-dim);
+  color: var(--accent-text);
+  font-weight: 700;
+  font-size: 0.9rem;
+  min-width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.template-system-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: inherit;
+  width: 100%;
+  transition: background var(--t);
+}
+.template-system-btn:hover { background: var(--bg-elevated); }
+
+/* ── Progress bars ─────────────────────────────────────────────── */
+.progress-track { height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; display: inline-block; width: 100px; vertical-align: middle; margin-left: 8px; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
+.confidence-track { width: 100%; height: 8px; background: var(--border-strong); border-radius: 4px; overflow: hidden; margin: 0.75rem 0 0.25rem; }
+.confidence-fill { height: 100%; background: linear-gradient(90deg, var(--red), var(--amber), var(--green)); border-radius: 4px; transition: width 0.5s; }
+.confidence-labels { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+
+/* ── Breakdown chart ───────────────────────────────────────────── */
+.breakdown-track { height: 22px; background: var(--bg-base); border-radius: 4px; overflow: hidden; position: relative; }
+.breakdown-fill { height: 100%; background: linear-gradient(90deg, var(--accent-dim), var(--accent)); border-radius: 4px; transition: width 0.3s; }
+
+/* ── Approve SP buttons ────────────────────────────────────────── */
+.approve-sp-btn {
+  width: 48px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-strong);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 400;
+  transition: background var(--t), border-color var(--t), color var(--t);
+}
+.approve-sp-btn:hover { background: var(--bg-elevated); border-color: var(--accent-border); color: var(--text-primary); }
+.approve-sp-btn.is-suggested { background: var(--accent-dim); border-color: var(--accent); color: var(--accent-text); font-weight: 700; }
+.approve-success { background: var(--green-dim); border: 1px solid var(--green-border); border-radius: 8px; padding: 0.75rem 1rem; color: var(--green); margin-top: 1rem; }
+
+/* ── Compare panel ─────────────────────────────────────────────── */
+.compare-box { background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center; }
+.compare-sp { font-size: 2rem; font-weight: 700; color: var(--accent-text); }
+
+/* ── Explanation panel ─────────────────────────────────────────── */
+.explanation-panel { font-size: 0.8rem; color: var(--text-secondary); background: var(--bg-base); padding: 0.75rem; border-radius: 6px; cursor: pointer; margin-bottom: 1rem; border: 1px solid var(--border); }
+.explanation-panel summary { font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
+
+/* ── Inline badges ─────────────────────────────────────────────── */
+.badge-accent { font-size: 0.7rem; background: var(--accent-dim); color: var(--accent-text); border: 1px solid var(--accent-border); border-radius: 3px; padding: 0 4px; flex-shrink: 0; }
+.badge-green { font-size: 0.7rem; background: var(--green-dim); color: var(--green); border: 1px solid var(--green-border); border-radius: 3px; padding: 0 4px; flex-shrink: 0; }
+.badge-amber { font-size: 0.7rem; background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber-border); border-radius: 4px; padding: 2px 6px; }
+
+/* ── Active baseline chip ──────────────────────────────────────── */
+.active-baseline-chip { font-size: 0.75rem; border-radius: 5px; padding: 0.25rem 0.6rem; border: 1px solid; }
+.active-baseline-chip.clean { background: var(--accent-dim); color: var(--accent-text); border-color: var(--accent-border); }
+.active-baseline-chip.dirty { background: var(--amber-dim); color: var(--amber); border-color: var(--amber-border); }
+
+/* ── Stat value colors ─────────────────────────────────────────── */
+.stat-value-accent { font-weight: 700; font-size: 1.1rem; color: var(--accent-text); transition: color var(--t); }
+.stat-value-green { font-weight: 700; font-size: 1.1rem; color: var(--green); transition: color var(--t); }
+.stat-value-amber { font-weight: 700; font-size: 1.1rem; color: var(--amber); transition: color var(--t); }
+.stat-value-red { font-weight: 700; font-size: 1.1rem; color: var(--red); transition: color var(--t); }
+.stat-value-muted { font-weight: 700; font-size: 1.1rem; color: var(--text-muted); transition: color var(--t); }
+
+/* ── Team config ───────────────────────────────────────────────── */
+.join-code-display { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.2em; color: var(--accent-text); border: 1px solid var(--accent-border); border-radius: 6px; padding: 2px 12px; background: var(--accent-dim); }
+.accordion-chevron { color: var(--accent-text); font-size: 0.8rem; }
+.tag-calibration { font-size: 0.7rem; background: var(--accent-dim); color: var(--accent-text); padding: 2px 6px; border-radius: 4px; }
+.tag-modified { font-size: 0.7rem; background: var(--amber-dim); color: var(--amber); padding: 2px 6px; border-radius: 4px; }
+input[type="range"] { accent-color: var(--accent); }
+
+/* ── History page ──────────────────────────────────────────────── */
+.completion-select { border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--bg-input); color: var(--text-secondary); transition: background var(--t), color var(--t), border-color var(--t); }
+.completion-select.completion-done { background: var(--green-dim); color: var(--green); border-color: var(--green-border); }
+.completion-select.completion-fail { background: var(--red-dim); color: var(--red); border-color: var(--red-border); }

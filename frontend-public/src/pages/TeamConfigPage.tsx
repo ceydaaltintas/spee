@@ -13,9 +13,8 @@ const TECHNIQUES: { value: Technique; label: string }[] = (
 
 const TASK_TYPES = Object.keys(ALL_CRITERIA_BY_TASK_TYPE);
 
-// Yerel ağırlık state tipi
 type LocalWeights = Record<string, { weight: number; source: string; active: boolean }>;
-type AllWeights = Record<string, LocalWeights>; // taskType → criteriaKey → {...}
+type AllWeights = Record<string, LocalWeights>;
 
 function buildLocalWeights(
   taskType: string,
@@ -28,7 +27,7 @@ function buildLocalWeights(
   const result: LocalWeights = {};
 
   for (const c of allCriteria) {
-    if (BOOLEAN_KEYS.has(c.key)) continue; // boolean kriter, ağırlık yok
+    if (BOOLEAN_KEYS.has(c.key)) continue;
     const hasServerWeight = c.key in serverWeights;
     result[c.key] = {
       weight: hasServerWeight ? serverWeights[c.key] : (defaults[c.key] ?? 0),
@@ -41,7 +40,6 @@ function buildLocalWeights(
 
 function getActiveCriteria(taskType: string, overrides: Record<string, string[]> | null): string[] {
   if (overrides && overrides[taskType]) return overrides[taskType];
-  // varsayılan: boolean olmayan tüm kriterler
   return (ALL_CRITERIA_BY_TASK_TYPE[taskType] ?? [])
     .filter(c => !BOOLEAN_KEYS.has(c.key))
     .map(c => c.key);
@@ -59,7 +57,7 @@ export default function TeamConfigPage({
   const [allWeights, setAllWeights] = useState<AllWeights>({});
   const [openTaskType, setOpenTaskType] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<string | null>(null); // taskType or 'general'
+  const [saving, setSaving] = useState<string | null>(null);
   const [message, setMessage] = useState('');
 
   useEffect(() => { loadConfig(); }, [teamId]);
@@ -109,13 +107,8 @@ export default function TeamConfigPage({
     if (!local) return;
 
     const activeKeys = Object.entries(local).filter(([, v]) => v.active).map(([k]) => k);
-    const activeWeights: Record<string, number> = {};
-    for (const k of activeKeys) activeWeights[k] = local[k].weight;
-
-    // Pasif kriterleri sıfır ağırlıkla gönder
-    const allKeys = Object.keys(local);
     const payload: Record<string, number> = {};
-    for (const k of allKeys) payload[k] = local[k].active ? local[k].weight : 0;
+    for (const k of Object.keys(local)) payload[k] = local[k].active ? local[k].weight : 0;
 
     setSaving(taskType);
     setMessage('');
@@ -125,7 +118,6 @@ export default function TeamConfigPage({
         weightSource: 'manual',
         activeCriteriaOverrides: { [taskType]: activeKeys },
       });
-      // source'ları manual olarak işaretle
       setAllWeights(prev => ({
         ...prev,
         [taskType]: Object.fromEntries(
@@ -144,7 +136,6 @@ export default function TeamConfigPage({
     const newFrac = Math.max(0, Math.min(99, newPct)) / 100;
     setAllWeights(prev => {
       const current = prev[taskType];
-      // Sadece aktif kriterlerin ağırlıklarını normalize et
       const activeWeights: Record<string, number> = {};
       for (const [k, v] of Object.entries(current)) {
         if (v.active) activeWeights[k] = v.weight;
@@ -166,7 +157,6 @@ export default function TeamConfigPage({
     setAllWeights(prev => {
       const current = prev[taskType];
       const updated = { ...current, [key]: { ...current[key], active } };
-      // Aktif kalan kriterleri yeniden normalize et
       const activeWeights: Record<string, number> = {};
       for (const [k, v] of Object.entries(updated)) {
         if (v.active) activeWeights[k] = v.weight;
@@ -209,16 +199,13 @@ export default function TeamConfigPage({
     <div>
       <h2>Takım Ayarları</h2>
 
-      {/* Genel ayarlar */}
       <div className="config-card" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
           <h3 style={{ margin: 0 }}>{config.name}</h3>
           {config.joinCode && (
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.68rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Giriş Kodu</div>
-              <div className="panel-deep" style={{ fontSize: '1.2rem', fontWeight: 700, letterSpacing: '0.2em', color: '#38bdf8', border: '1px solid #0369a1', borderRadius: '6px', padding: '2px 12px' }}>
-                {config.joinCode}
-              </div>
+              <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }} className="criterion-desc">Giriş Kodu</div>
+              <div className="join-code-display">{config.joinCode}</div>
             </div>
           )}
         </div>
@@ -227,7 +214,7 @@ export default function TeamConfigPage({
             <option value="JIRA">JIRA</option>
             <option value="ADO">Azure DevOps</option>
           </select>
-          <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+          <small style={{ fontSize: '0.75rem', marginTop: '4px', display: 'block' }} className="criterion-desc">
             Tahmin ekranında varsayılan olarak bu sistem seçili gelir.
           </small>
         </label>
@@ -236,7 +223,7 @@ export default function TeamConfigPage({
             {TECHNIQUES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </label>
-        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem', marginBottom: '1rem' }}>
+        <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', marginBottom: '1rem' }} className="criterion-desc">
           {technique === 'FIBONACCI' && 'Fibonacci: 1, 2, 3, 5, 8, 13, 21, 34, 55 — En yaygın kullanılan skala'}
           {technique === 'MODIFIED_FIBONACCI' && 'Değiştirilmiş Fibonacci: 1, 2, 3, 5, 8, 13, 20, 40, 100'}
           {technique === 'TSHIRT' && 'Tişört: XS, S, M, L, XL, XXL — Sayı yerine boyut ifadesi'}
@@ -249,14 +236,12 @@ export default function TeamConfigPage({
         {message && <div className="info" style={{ marginTop: '0.75rem' }}>{message}</div>}
       </div>
 
-      {/* Baz iş tanımları */}
       <div style={{ marginBottom: '2rem' }}>
         <BaselinesSection teamId={teamId} />
       </div>
 
-      {/* Görev tipi ağırlık editörü */}
       <h3>Kriter Ağırlıkları</h3>
-      <p style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: '1rem' }}>
+      <p style={{ fontSize: '0.8rem', marginBottom: '1rem' }} className="criterion-desc">
         Her görev tipi için hangi kriterlerin kullanılacağını ve ağırlıklarını ayarlayın.
         Bir kriteri kapattığınızda ağırlığı diğerlerine orantılı dağıtılır.
         Toplam her zaman %100 olmalıdır.
@@ -279,27 +264,14 @@ export default function TeamConfigPage({
 
         return (
           <div key={tt} className="panel" style={{ marginBottom: '0.5rem', overflow: 'hidden' }}>
-            {/* Başlık satırı */}
-            <div
-              onClick={() => setOpenTaskType(isOpen ? null : tt)}
-              className="accordion-header"
-            >
-              <span style={{ color: '#38bdf8', fontSize: '0.8rem' }}>{isOpen ? '▼' : '▶'}</span>
+            <div onClick={() => setOpenTaskType(isOpen ? null : tt)} className="accordion-header">
+              <span className="accordion-chevron">{isOpen ? '▼' : '▶'}</span>
               <strong style={{ flex: 1 }}>{TASK_TYPE_LABELS[tt] ?? tt}</strong>
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{activeCount} kriter aktif</span>
-              {hasCalibration && (
-                <span style={{ fontSize: '0.7rem', background: '#0c4a6e', color: '#38bdf8', padding: '2px 6px', borderRadius: '4px' }}>
-                  kalibrasyon güncelledi
-                </span>
-              )}
-              {hasChanges && !hasCalibration && (
-                <span style={{ fontSize: '0.7rem', background: '#1c1917', color: '#fbbf24', padding: '2px 6px', borderRadius: '4px' }}>
-                  değiştirildi
-                </span>
-              )}
+              <span style={{ fontSize: '0.75rem' }} className="criterion-desc">{activeCount} kriter aktif</span>
+              {hasCalibration && <span className="tag-calibration">kalibrasyon güncelledi</span>}
+              {hasChanges && !hasCalibration && <span className="tag-modified">değiştirildi</span>}
             </div>
 
-            {/* İçerik */}
             {isOpen && (
               <div className="accordion-body" style={{ padding: '1rem' }}>
                 <table style={{ marginBottom: '0.75rem' }}>
@@ -332,7 +304,7 @@ export default function TeamConfigPage({
                               />
                             </td>
                             <td style={{ fontSize: '0.85rem' }}>{criteriaLabel(key)}</td>
-                            <td style={{ textAlign: 'right', color: '#64748b', fontSize: '0.8rem' }}>
+                            <td style={{ textAlign: 'right', fontSize: '0.8rem' }} className="criterion-desc">
                               {def !== undefined ? `%${(def * 100).toFixed(0)}` : '—'}
                             </td>
                             <td style={{ textAlign: 'right', fontWeight: 600, fontSize: '0.85rem' }}>
@@ -345,28 +317,26 @@ export default function TeamConfigPage({
                                   min={1} max={60} step={1}
                                   value={Math.round(val.weight * 100)}
                                   onChange={e => handleWeightChange(tt, key, Number(e.target.value))}
-                                  style={{ width: '100%', accentColor: '#38bdf8' }}
+                                  style={{ width: '100%' }}
                                 />
                               )}
                             </td>
                             <td style={{ textAlign: 'right', fontSize: '0.8rem', fontWeight: 600 }}>
                               {diffPct !== null && val.active && Math.abs(diffPct) > 0.5 ? (
-                                <span style={{ color: diffPct > 0 ? '#fbbf24' : '#6ee7b7' }}>
+                                <span className={diffPct > 0 ? 'stat-value-amber' : 'stat-value-green'}>
                                   {diffPct > 0 ? `+${diffPct.toFixed(0)}` : diffPct.toFixed(0)}%
                                 </span>
                               ) : (
-                                <span style={{ color: '#334155' }}>—</span>
+                                <span className="criterion-desc">—</span>
                               )}
                             </td>
                             <td style={{ textAlign: 'center' }}>
                               {val.source === 'calibration' ? (
-                                <span style={{ fontSize: '0.7rem', background: '#0c4a6e', color: '#38bdf8', padding: '1px 5px', borderRadius: '3px' }}>
-                                  kalibrasyon
-                                </span>
+                                <span className="tag-calibration">kalibrasyon</span>
                               ) : val.source === 'manual' ? (
-                                <span style={{ fontSize: '0.7rem', color: '#475569' }}>manuel</span>
+                                <span style={{ fontSize: '0.7rem' }} className="criterion-desc">manuel</span>
                               ) : (
-                                <span style={{ fontSize: '0.7rem', color: '#334155' }}>varsayılan</span>
+                                <span style={{ fontSize: '0.7rem' }} className="stat-value-muted">varsayılan</span>
                               )}
                             </td>
                           </tr>
@@ -376,19 +346,14 @@ export default function TeamConfigPage({
                 </table>
 
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <button
-                    onClick={() => handleSaveWeights(tt)}
-                    disabled={saving === tt}
-                    className="primary"
-                  >
+                  <button onClick={() => handleSaveWeights(tt)} disabled={saving === tt} className="primary">
                     {saving === tt ? 'Kaydediliyor...' : 'Kaydet'}
                   </button>
-                  <button onClick={() => handleResetDefaults(tt)} style={{ color: '#64748b' }}>
+                  <button onClick={() => handleResetDefaults(tt)} className="btn-muted">
                     Varsayılana sıfırla
                   </button>
-                  <span style={{ fontSize: '0.75rem', color: '#475569', marginLeft: 'auto' }}>
-                    Toplam: %{Object.values(local).filter(v => v.active).reduce((s, v) => s + v.weight, 0).toFixed
-                    === undefined ? 0 : (Object.values(local).filter(v => v.active).reduce((s, v) => s + v.weight, 0) * 100).toFixed(0)}
+                  <span style={{ fontSize: '0.75rem', marginLeft: 'auto' }} className="criterion-desc">
+                    Toplam: %{(Object.values(local).filter(v => v.active).reduce((s, v) => s + v.weight, 0) * 100).toFixed(0)}
                   </span>
                 </div>
               </div>
