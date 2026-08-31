@@ -231,7 +231,7 @@ export default function BaselinesSection({ teamId }: { teamId: string }) {
         <div className="panel" style={{ padding: '1.25rem', marginBottom: '1.25rem' }}>
           <h4 style={{ marginTop: 0, marginBottom: '1rem' }}>{editId ? 'Baz İşi Düzenle' : 'Yeni Baz İş'}</h4>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
             <label>Kapsam
               <select value={form.taskType} onChange={e => {
                 const tt = e.target.value;

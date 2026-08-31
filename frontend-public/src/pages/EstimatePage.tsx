@@ -1086,35 +1086,43 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                       <h4 style={{ marginBottom: '0.5rem' }}>
                         {spDiff > 0 ? 'Bu tahmin neden daha yüksek?' : spDiff < 0 ? 'Bu tahmin neden daha düşük?' : 'Kriter farkları'}
                       </h4>
-                      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '150px 20px 1fr 72px 110px', gap: '8px', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px', paddingBottom: '4px', borderBottom: '1px solid var(--border)', minWidth: '520px' }}>
-                        <div /><div /><div />
-                        <div style={{ textAlign: 'center' }} className="stat-value-accent">Şu An</div>
-                        <div style={{ textAlign: 'center' }} className="criterion-desc">Karşılaştırılan</div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '520px' }}>
-                        {diffs.map(d => (
-                          <div key={d.key} style={{ display: 'grid', gridTemplateColumns: '150px 20px 1fr 72px 110px', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
-                            <div style={{ textAlign: 'right' }} className="criterion-desc">{criteriaLabel(d.key)}</div>
-                            <div style={{ textAlign: 'center' }} className={d.diff > 0 ? 'stat-value-red' : 'stat-value-green'}>
-                              {d.diff > 0 ? '▲' : '▼'}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <div style={{
-                                height: '14px', borderRadius: '3px', minWidth: '4px',
-                                width: `${Math.min(100, Math.abs(d.diff) * 50)}%`,
-                                background: d.diff > 0 ? 'var(--red-dim)' : 'var(--green-dim)',
-                                border: `1px solid ${d.diff > 0 ? 'var(--red-border)' : 'var(--green-border)'}`,
-                              }} />
-                              <span style={{ fontSize: '0.75rem' }} className={d.diff > 0 ? 'stat-value-red' : 'stat-value-green'}>
-                                {d.diff > 0 ? '+' : ''}{d.diff.toFixed(2)}
-                              </span>
-                            </div>
-                            <div style={{ textAlign: 'center', fontWeight: 600 }} className="criterion-desc">{d.curLabel}</div>
-                            <div style={{ textAlign: 'center' }} className="criterion-desc">{d.prevLabel}</div>
-                          </div>
-                        ))}
-                      </div>
+                      <div className="table-wrap">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Kriter</th>
+                              <th style={{ width: '20px' }}></th>
+                              <th>Etki</th>
+                              <th style={{ textAlign: 'center', width: '64px', color: 'var(--accent-text)' }}>Şu An</th>
+                              <th style={{ textAlign: 'center', width: '64px' }}>Önceki</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {diffs.map(d => (
+                              <tr key={d.key}>
+                                <td className="criterion-desc" style={{ fontSize: '0.8rem' }}>{criteriaLabel(d.key)}</td>
+                                <td style={{ textAlign: 'center' }} className={d.diff > 0 ? 'stat-value-red' : 'stat-value-green'}>
+                                  {d.diff > 0 ? '▲' : '▼'}
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <div style={{
+                                      height: '10px', borderRadius: '3px', minWidth: '4px', flexShrink: 0,
+                                      width: `${Math.min(60, Math.abs(d.diff) * 30)}px`,
+                                      background: d.diff > 0 ? 'var(--red-dim)' : 'var(--green-dim)',
+                                      border: `1px solid ${d.diff > 0 ? 'var(--red-border)' : 'var(--green-border)'}`,
+                                    }} />
+                                    <span style={{ fontSize: '0.72rem', whiteSpace: 'nowrap' }} className={d.diff > 0 ? 'stat-value-red' : 'stat-value-green'}>
+                                      {d.diff > 0 ? '+' : ''}{d.diff.toFixed(2)}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td style={{ textAlign: 'center', fontWeight: 600 }} className="criterion-desc">{d.curLabel}</td>
+                                <td style={{ textAlign: 'center' }} className="criterion-desc">{d.prevLabel}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                       <div style={{ marginTop: '0.5rem', fontSize: '0.75rem' }} className="criterion-desc">
                         Toplam skor farkı:{' '}

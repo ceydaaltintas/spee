@@ -221,8 +221,8 @@ export default function TeamConfigPage({
           )}
         </div>
 
-        {/* Ayarlar — 2 sütun */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem' }}>
+        {/* Ayarlar — 2 sütun (mobilde 1) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem 1.5rem' }}>
           <label>Kaynak Sistem
             <select value={sourceSystem} onChange={e => setSourceSystem(e.target.value as 'JIRA' | 'ADO')}>
               <option value="JIRA">JIRA</option>
