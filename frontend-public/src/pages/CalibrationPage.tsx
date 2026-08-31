@@ -58,19 +58,20 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
         </ol>
       </div>
 
-      <div className="form-row" style={{ alignItems: 'flex-end' }}>
-        <label style={{ maxWidth: '320px' }}>Sprint Filtresi
+      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+        <label style={{ flex: 1, minWidth: '200px' }}>Sprint Filtresi
           <input
             value={sprintFilter}
             onChange={e => setSprintFilter(e.target.value)}
             placeholder="Sprint-42 (boş bırakırsan tümü)"
+            style={{ width: '100%' }}
           />
         </label>
-        <button onClick={handleCalibrate} disabled={loading} className="primary">
+        <button onClick={handleCalibrate} disabled={loading} className="primary" style={{ height: '38px', whiteSpace: 'nowrap' }}>
           {loading ? 'Analiz ediliyor...' : 'Analiz Et'}
         </button>
       </div>
-      <p className="criterion-desc" style={{ fontSize: '0.75rem', marginTop: '-0.5rem', marginBottom: '1rem' }}>
+      <p className="criterion-desc" style={{ fontSize: '0.75rem', marginBottom: '1rem' }}>
         Virgülle birden fazla sprint girebilirsin
       </p>
 

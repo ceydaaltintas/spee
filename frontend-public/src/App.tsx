@@ -167,30 +167,72 @@ export default function App() {
                     </svg>
                   </button>
 
-                  {showTeamMenu && !showCreate && !showJoin && (
-                    <div className="dropdown-panel">
-                      <div className="dropdown-title">Takımlar</div>
-                      {teams.map(t => (
-                        <button
-                          key={t.id}
-                          className={`dropdown-team-item${t.id === teamId ? ' active' : ''}`}
-                          onClick={() => switchTeam(t.id)}
-                        >
-                          <span className="team-chip-dot" style={{ background: t.id === teamId ? 'var(--accent)' : 'var(--border-strong)' }} />
-                          {t.name}
-                        </button>
-                      ))}
-                      <div className="dropdown-divider" />
-                      <div style={{ display: 'flex', gap: '0.4rem' }}>
-                        <button className="dropdown-action" onClick={() => { setShowCreate(true); setShowTeamMenu(false); }}>
-                          + Yeni Takım
-                        </button>
-                        <button className="dropdown-action" onClick={() => { setShowJoin(true); setShowTeamMenu(false); }}>
-                          Kod ile Katıl
-                        </button>
+                  {showTeamMenu && !showCreate && !showJoin && (() => {
+                    const realTeams = teams.filter(t => t.name && t.id !== DEMO_TEAM_ID);
+                    const isFirstTime = realTeams.length === 0;
+                    return (
+                      <div className="dropdown-panel" style={{ minWidth: '260px' }}>
+                        {isFirstTime ? (
+                          /* İlk kez gelen kullanıcı — yönlendirici CTA */
+                          <>
+                            <div className="dropdown-title">Başlarken</div>
+                            <p style={{ fontSize: '0.78rem', padding: '0.1rem 0.5rem 0.6rem', color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                              Kendi takımını oluştur ya da davet kodunla mevcut bir takıma katıl.
+                            </p>
+                            <button
+                              className="primary"
+                              style={{ width: '100%', marginBottom: '0.35rem', justifyContent: 'center' }}
+                              onClick={() => { setShowCreate(true); setShowTeamMenu(false); }}
+                            >
+                              + Yeni Takım Oluştur
+                            </button>
+                            <button
+                              style={{ width: '100%', justifyContent: 'center' }}
+                              onClick={() => { setShowJoin(true); setShowTeamMenu(false); }}
+                            >
+                              Kod ile Takıma Katıl
+                            </button>
+                            <div className="dropdown-divider" style={{ margin: '0.5rem 0 0.3rem' }} />
+                            <div className="dropdown-title" style={{ paddingBottom: '0.2rem' }}>Demo mod</div>
+                            {teams.filter(t => t.name).map(t => (
+                              <button
+                                key={t.id}
+                                className={`dropdown-team-item${t.id === teamId ? ' active' : ''}`}
+                                onClick={() => switchTeam(t.id)}
+                              >
+                                <span className="team-chip-dot" style={{ background: t.id === teamId ? 'var(--accent)' : 'var(--border-strong)' }} />
+                                {t.name}
+                              </button>
+                            ))}
+                          </>
+                        ) : (
+                          /* Normal kullanıcı — takım listesi */
+                          <>
+                            <div className="dropdown-title">Takımlar</div>
+                            {teams.filter(t => t.name).map(t => (
+                              <button
+                                key={t.id}
+                                className={`dropdown-team-item${t.id === teamId ? ' active' : ''}`}
+                                onClick={() => switchTeam(t.id)}
+                              >
+                                <span className="team-chip-dot" style={{ background: t.id === teamId ? 'var(--accent)' : 'var(--border-strong)' }} />
+                                {t.name}
+                              </button>
+                            ))}
+                            <div className="dropdown-divider" />
+                            <div style={{ display: 'flex', gap: '0.4rem' }}>
+                              <button className="dropdown-action" onClick={() => { setShowCreate(true); setShowTeamMenu(false); }}>
+                                + Yeni Takım
+                              </button>
+                              <button className="dropdown-action" onClick={() => { setShowJoin(true); setShowTeamMenu(false); }}>
+                                Kod ile Katıl
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {showCreate && (
                     <div className="dropdown-panel" style={{ minWidth: '280px' }}>

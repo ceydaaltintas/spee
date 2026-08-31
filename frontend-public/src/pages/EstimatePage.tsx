@@ -522,7 +522,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
       setSessionHistory(prev => {
         const entry = {
           id: sessionCounter,
-          label: `#${sessionCounter} — ${sourceId.trim() || '?'} — ${data.suggestedSP} SP`,
+          label: `#${sessionCounter} — ${sourceId.trim() || TASK_TYPE_LABELS[taskType] || taskType} — ${data.suggestedSP} SP`,
           taskType,
           result: data,
         };
@@ -567,7 +567,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
             <div className="stat-value-green">{summary.approved}</div>
           </div>
           {summary.pending > 0 && (
-            <div className="stat-card-warn">
+            <div className="stat-card">
               <div className="stat-label">Bekleyen Onay</div>
               <div className="stat-value-amber">{summary.pending}</div>
             </div>
@@ -638,17 +638,17 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
           )}
         </button>
         {showSourcePanel && (
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.6rem', alignItems: 'flex-end' }}>
-            <label style={{ flex: 1 }}>Kaynak Sistem
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.6rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <label style={{ flex: '0 0 130px' }}>Kaynak Sistem
               <select value={sourceSystem} onChange={e => handleSourceSystemChange(e.target.value as 'JIRA' | 'ADO')}>
                 <option value="JIRA">JIRA</option>
                 <option value="ADO">Azure DevOps</option>
               </select>
             </label>
-            <label style={{ flex: 1 }}>İş Kalemi No
+            <label style={{ flex: 1, minWidth: '130px' }}>İş Kalemi No
               <input value={sourceId} onChange={e => setSourceId(e.target.value)} placeholder="PROJ-123" />
             </label>
-            <label style={{ flex: 1 }}>Sprint (isteğe bağlı)
+            <label style={{ flex: 1, minWidth: '130px' }}>Sprint (isteğe bağlı)
               <input value={sprintId} onChange={e => setSprintId(e.target.value)} placeholder="Sprint-42" />
             </label>
           </div>
@@ -749,7 +749,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
           </span>
         )}
       </h3>
-      <div className="criteria-list" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', overflow: 'hidden' }}>
+      <div className="criteria-list">
         {activeCriteria.map((c, i) => {
           const selectedVal = criteria[c.key]?.value;
           const col = i % 2;
@@ -1086,14 +1086,15 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                       <h4 style={{ marginBottom: '0.5rem' }}>
                         {spDiff > 0 ? 'Bu tahmin neden daha yüksek?' : spDiff < 0 ? 'Bu tahmin neden daha düşük?' : 'Kriter farkları'}
                       </h4>
-                      <div style={{ display: 'grid', gridTemplateColumns: '160px 20px 1fr 60px 120px', gap: '8px', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px', paddingBottom: '4px', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '150px 20px 1fr 72px 110px', gap: '8px', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px', paddingBottom: '4px', borderBottom: '1px solid var(--border)', minWidth: '520px' }}>
                         <div /><div /><div />
-                        <div style={{ textAlign: 'center' }} className="stat-value-accent">Mevcut</div>
+                        <div style={{ textAlign: 'center' }} className="stat-value-accent">Şu An</div>
                         <div style={{ textAlign: 'center' }} className="criterion-desc">Karşılaştırılan</div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '520px' }}>
                         {diffs.map(d => (
-                          <div key={d.key} style={{ display: 'grid', gridTemplateColumns: '160px 20px 1fr 60px 120px', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
+                          <div key={d.key} style={{ display: 'grid', gridTemplateColumns: '150px 20px 1fr 72px 110px', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
                             <div style={{ textAlign: 'right' }} className="criterion-desc">{criteriaLabel(d.key)}</div>
                             <div style={{ textAlign: 'center' }} className={d.diff > 0 ? 'stat-value-red' : 'stat-value-green'}>
                               {d.diff > 0 ? '▲' : '▼'}
@@ -1113,6 +1114,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                             <div style={{ textAlign: 'center' }} className="criterion-desc">{d.prevLabel}</div>
                           </div>
                         ))}
+                      </div>
                       </div>
                       <div style={{ marginTop: '0.5rem', fontSize: '0.75rem' }} className="criterion-desc">
                         Toplam skor farkı:{' '}

@@ -597,8 +597,19 @@ button.btn-danger:disabled { opacity: 0.4; }
   margin-bottom: 1rem;
 }
 
-@media (max-width: 480px) {
-  .criteria-grid { grid-template-columns: 1fr 1fr; }
+/* 2-column criteria list (EstimatePage) */
+.criteria-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  overflow: hidden;
+}
+
+@media (max-width: 600px) {
+  .criteria-grid { grid-template-columns: 1fr; }
+  .criteria-list {
+    grid-template-columns: 1fr;
+  }
+  .criteria-row.left-col { border-right-color: transparent !important; }
 }
 
 .criterion {

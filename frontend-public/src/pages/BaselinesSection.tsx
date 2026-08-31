@@ -55,7 +55,7 @@ function CountInput({ criteriaKey, value, onChange }: { criteriaKey: string; val
 
 const EMPTY_FORM = {
   taskType: '' as string,
-  criteriaTaskType: 'USER_STORY' as string, // genel için hangi kriterleri kullanacak
+  criteriaTaskType: 'USER_STORY' as string,
   title: '',
   description: '',
   storyPoints: 5,
@@ -71,7 +71,7 @@ export default function BaselinesSection({ teamId }: { teamId: string }) {
   const [error, setError] = useState('');
   const [calibrationCheck, setCalibrationCheck] = useState<CalibrationCheck | null>(null);
   const [calibrating, setCalibrating] = useState(false);
-  const [checkingId, setCheckingId] = useState<string | null>(null); // hangi baseline için motor çalışıyor
+  const [checkingId, setCheckingId] = useState<string | null>(null);
 
   useEffect(() => { load(); }, [teamId]);
 
@@ -82,7 +82,6 @@ export default function BaselinesSection({ teamId }: { teamId: string }) {
     } catch { setBaselines([]); }
   }
 
-  // Hangi görev tipinin kriterleri gösterilecek
   const activeCriteriaType = form.taskType || form.criteriaTaskType;
   const activeCriteria = ALL_CRITERIA_BY_TASK_TYPE[activeCriteriaType] ?? [];
 
@@ -192,7 +191,6 @@ export default function BaselinesSection({ teamId }: { teamId: string }) {
       }
       setShowForm(false);
       await load();
-      // Kayıt sonrası motor kontrolü yap
       const taskTypeForCheck = form.taskType || form.criteriaTaskType;
       await runEngineCheck(
         { id: savedId, storyPoints: form.storyPoints, criteriaSnapshot: criteria, title: form.title.trim(), taskType: form.taskType || null } as BaselineStory,
@@ -218,22 +216,21 @@ export default function BaselinesSection({ teamId }: { teamId: string }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
         <h3 style={{ margin: 0 }}>Baz İş Tanımları</h3>
         <button onClick={openNew} className="primary" style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}>
           + Yeni Baz İş
         </button>
       </div>
-      <p style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: '1rem' }}>
+      <p className="criterion-desc" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>
         Referans iş kalemleri tanımlayın. Kriter değerlerini doldurarak motorun bu işten öğrenmesini sağlayın.
       </p>
 
       {/* Form */}
       {showForm && (
-        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '1.25rem', marginBottom: '1.25rem' }}>
-          <h4 style={{ marginTop: 0 }}>{editId ? 'Baz İşi Düzenle' : 'Yeni Baz İş'}</h4>
+        <div className="panel" style={{ padding: '1.25rem', marginBottom: '1.25rem' }}>
+          <h4 style={{ marginTop: 0, marginBottom: '1rem' }}>{editId ? 'Baz İşi Düzenle' : 'Yeni Baz İş'}</h4>
 
-          {/* Üst bilgiler */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
             <label>Kapsam
               <select value={form.taskType} onChange={e => {
@@ -244,7 +241,7 @@ export default function BaselinesSection({ teamId }: { teamId: string }) {
                 <option value="">Genel (tüm görev tipleri)</option>
                 {TASK_TYPES.map(t => <option key={t} value={t}>{TASK_TYPE_LABELS[t]}</option>)}
               </select>
-              <small style={{ color: '#64748b', fontSize: '0.72rem', marginTop: '3px', display: 'block' }}>
+              <small className="criterion-desc" style={{ fontSize: '0.72rem', marginTop: '3px', display: 'block' }}>
                 {isGeneral ? 'Tüm tahminler için referans olur' : 'Sadece bu görev tipi için geçerli'}
               </small>
             </label>
@@ -252,13 +249,12 @@ export default function BaselinesSection({ teamId }: { teamId: string }) {
               <select value={form.storyPoints} onChange={e => setForm(f => ({ ...f, storyPoints: Number(e.target.value) }))}>
                 {SP_VALUES.map(sp => <option key={sp} value={sp}>{sp} SP</option>)}
               </select>
-              <small style={{ color: '#64748b', fontSize: '0.72rem', marginTop: '3px', display: 'block' }}>
+              <small className="criterion-desc" style={{ fontSize: '0.72rem', marginTop: '3px', display: 'block' }}>
                 Ekibinizin bu işe verdiği gerçek SP değeri
               </small>
             </label>
           </div>
 
-          {/* Genel için kriter tipi seçimi */}
           {isGeneral && (
             <label style={{ marginBottom: '0.75rem' }}>Kriter Şablonu
               <select value={form.criteriaTaskType} onChange={e => {
@@ -267,7 +263,7 @@ export default function BaselinesSection({ teamId }: { teamId: string }) {
               }}>
                 {TASK_TYPES.map(t => <option key={t} value={t}>{TASK_TYPE_LABELS[t]}</option>)}
               </select>
-              <small style={{ color: '#64748b', fontSize: '0.72rem', marginTop: '3px', display: 'block' }}>
+              <small className="criterion-desc" style={{ fontSize: '0.72rem', marginTop: '3px', display: 'block' }}>
                 Bu genel baz iş hangi türdeki iş karakteristiğine sahip?
               </small>
             </label>
@@ -287,25 +283,37 @@ export default function BaselinesSection({ teamId }: { teamId: string }) {
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               placeholder="Bu baz işin içeriğini kısaca açıklayın..."
               rows={2}
-              style={{ resize: 'vertical', padding: '0.5rem', border: '1px solid #334155', borderRadius: '6px', background: '#0f172a', color: '#e2e8f0', fontSize: '0.85rem', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }}
+              style={{
+                resize: 'vertical',
+                padding: '0.5rem 0.75rem',
+                border: '1px solid var(--border-strong)',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                fontSize: '0.85rem',
+                fontFamily: 'inherit',
+                width: '100%',
+                boxSizing: 'border-box',
+                lineHeight: 1.5,
+              }}
             />
           </label>
 
           {/* Kriterler */}
-          <div style={{ borderTop: '1px solid #334155', paddingTop: '1rem', marginBottom: '1rem' }}>
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginBottom: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <strong style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>Kriter Değerleri</strong>
-              <span style={{ fontSize: '0.75rem', color: filledCount >= 2 ? '#6ee7b7' : '#64748b' }}>
+              <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>Kriter Değerleri</strong>
+              <span className={filledCount >= 2 ? 'stat-value-green' : 'criterion-desc'} style={{ fontSize: '0.75rem' }}>
                 {filledCount} dolduruldu {filledCount < 2 && '(en az 2 gerekli)'}
               </span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.6rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '0.5rem' }}>
               {activeCriteria.map(c => (
-                <div key={c.key} style={{ background: '#0f172a', border: `1px solid ${criteria[c.key] ? '#0369a1' : '#334155'}`, borderRadius: '6px', padding: '0.5rem', display: 'flex', flexDirection: 'column', height: '100px' }}>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div key={c.key} className="criterion" style={{ border: `1px solid ${criteria[c.key] ? 'var(--accent-border)' : 'var(--border)'}`, background: criteria[c.key] ? 'var(--accent-dim)' : 'var(--bg-surface)', minHeight: '90px' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {criteriaLabel(c.key)}
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: '#475569', marginBottom: '6px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  <div className="criterion-desc" style={{ fontSize: '0.67rem', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                     {criteriaDescription(c.key)}
                   </div>
                   <div style={{ marginTop: 'auto' }}>
@@ -317,7 +325,7 @@ export default function BaselinesSection({ teamId }: { teamId: string }) {
                           onChange={e => setCriterion(c.key, 'boolean', e.target.checked)}
                           style={{ width: '14px', height: '14px' }}
                         />
-                        <span style={{ color: '#94a3b8' }}>{(criteria[c.key]?.value as boolean) ? 'Evet' : 'Hayır'}</span>
+                        <span className="criterion-desc">{(criteria[c.key]?.value as boolean) ? 'Evet' : 'Hayır'}</span>
                       </label>
                     ) : c.type === 'scale5' ? (
                       <select
@@ -353,24 +361,24 @@ export default function BaselinesSection({ teamId }: { teamId: string }) {
         </div>
       )}
 
-      {/* Kalibrasyon önerisi paneli */}
+      {/* Kalibrasyon önerisi */}
       {calibrationCheck && (
-        <div style={{ background: '#1c1400', border: '1px solid #b45309', borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
+        <div className="calib-hint-box" style={{ marginBottom: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-            <span style={{ fontSize: '1.2rem' }}>⚡</span>
+            <span>⚡</span>
             <div style={{ flex: 1 }}>
-              <strong style={{ color: '#fbbf24', fontSize: '0.9rem' }}>Kalibrasyon Önerisi</strong>
-              <p style={{ margin: '0.4rem 0 0.75rem', fontSize: '0.83rem', color: '#d97706' }}>
+              <strong style={{ color: 'var(--amber)', fontSize: '0.9rem' }}>Kalibrasyon Önerisi</strong>
+              <p style={{ margin: '0.4rem 0 0.75rem', fontSize: '0.83rem', color: 'var(--amber)' }}>
                 <strong>"{calibrationCheck.baselineTitle}"</strong> için motor{' '}
-                <strong style={{ color: '#e2e8f0' }}>{calibrationCheck.engineSP} SP</strong> önerdi,{' '}
-                sen <strong style={{ color: '#e2e8f0' }}>{calibrationCheck.definedSP} SP</strong> tanımladın.{' '}
+                <strong style={{ color: 'var(--text-primary)' }}>{calibrationCheck.engineSP} SP</strong> önerdi,{' '}
+                sen <strong style={{ color: 'var(--text-primary)' }}>{calibrationCheck.definedSP} SP</strong> tanımladın.{' '}
                 Bu baz işi kalibrasyon verisi olarak ekleyerek motoru eğitebilirsin.
               </p>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={handleCalibrate} disabled={calibrating} className="primary" style={{ fontSize: '0.8rem' }}>
                   {calibrating ? 'Kaydediliyor...' : 'Kalibrasyon Verisi Olarak Ekle'}
                 </button>
-                <button onClick={() => setCalibrationCheck(null)} style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                <button onClick={() => setCalibrationCheck(null)} className="btn-muted" style={{ fontSize: '0.8rem' }}>
                   Şimdi Değil
                 </button>
               </div>
@@ -381,7 +389,7 @@ export default function BaselinesSection({ teamId }: { teamId: string }) {
 
       {/* Liste */}
       {baselines.length === 0 && !showForm && (
-        <p style={{ color: '#475569', fontSize: '0.85rem' }}>Henüz baz iş tanımlanmamış.</p>
+        <p className="criterion-desc" style={{ fontSize: '0.85rem' }}>Henüz baz iş tanımlanmamış.</p>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -390,31 +398,36 @@ export default function BaselinesSection({ teamId }: { teamId: string }) {
           const filledKeys = snap ? Object.keys(snap).filter(k => !BOOLEAN_KEYS.has(k)) : [];
           return (
             <div key={b.id} className="baseline-card">
-              <div style={{ minWidth: '52px', height: '52px', background: '#0c4a6e', border: '2px solid #0284c7', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 700, color: '#38bdf8', flexShrink: 0 }}>
+              {/* SP badge */}
+              <div className="baseline-sp-badge">
                 {b.storyPoints}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2px' }}>
-                  <strong style={{ fontSize: '0.9rem' }}>{b.title}</strong>
-                  <span style={{ fontSize: '0.72rem', background: b.taskType ? '#1c1917' : '#0c4a6e', color: b.taskType ? '#fbbf24' : '#38bdf8', padding: '1px 6px', borderRadius: '4px' }}>
-                    {b.taskType ? (TASK_TYPE_LABELS[b.taskType] ?? b.taskType) : 'Genel'}
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '3px', flexWrap: 'wrap' }}>
+                  <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{b.title}</strong>
+                  {b.taskType
+                    ? <span className="badge-amber">{TASK_TYPE_LABELS[b.taskType] ?? b.taskType}</span>
+                    : <span className="badge-accent">Genel</span>}
                 </div>
-                {b.description && <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '4px' }}>{b.description}</div>}
-                <div style={{ fontSize: '0.72rem', color: filledKeys.length >= 2 ? '#6ee7b7' : '#fbbf24' }}>
-                  {filledKeys.length} kriter kaydedildi
+                {b.description && (
+                  <div className="criterion-desc" style={{ fontSize: '0.78rem', marginBottom: '3px' }}>{b.description}</div>
+                )}
+                <div style={{ fontSize: '0.72rem' }}>
+                  <span className={filledKeys.length >= 2 ? 'stat-value-green' : 'stat-value-amber'} style={{ fontSize: '0.72rem' }}>
+                    {filledKeys.length} kriter kaydedildi
+                  </span>
                   {filledKeys.length > 0 && (
-                    <span style={{ color: '#475569', marginLeft: '6px' }}>
+                    <span className="criterion-desc" style={{ marginLeft: '6px' }}>
                       ({filledKeys.map(k => criteriaLabel(k)).join(', ')})
                     </span>
                   )}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0, alignItems: 'center' }}>
                 <button
                   onClick={() => runEngineCheck(b, b.taskType ?? 'USER_STORY')}
                   disabled={checkingId === b.id}
-                  style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', color: '#fbbf24', border: '1px solid #b45309', background: 'transparent' }}
+                  style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', color: 'var(--amber)', borderColor: 'var(--amber-border)', background: 'var(--amber-dim)' }}
                 >
                   {checkingId === b.id ? '...' : '⚡ Motor'}
                 </button>

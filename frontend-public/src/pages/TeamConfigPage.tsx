@@ -200,40 +200,58 @@ export default function TeamConfigPage({
       <h2>Takım Ayarları</h2>
 
       <div className="config-card" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-          <h3 style={{ margin: 0 }}>{config.name}</h3>
+        {/* Takım başlığı + giriş kodu yan yana, kompakt */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{config.name}</span>
           {config.joinCode && (
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }} className="criterion-desc">Giriş Kodu</div>
-              <div className="join-code-display">{config.joinCode}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span className="criterion-desc" style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Giriş Kodu</span>
+              <span style={{
+                fontFamily: "'SF Mono', ui-monospace, monospace",
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                letterSpacing: '0.15em',
+                color: 'var(--accent-text)',
+                background: 'var(--accent-dim)',
+                border: '1px solid var(--accent-border)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '2px 10px',
+              }}>{config.joinCode}</span>
             </div>
           )}
         </div>
-        <label>Kaynak Sistem
-          <select value={sourceSystem} onChange={e => setSourceSystem(e.target.value as 'JIRA' | 'ADO')}>
-            <option value="JIRA">JIRA</option>
-            <option value="ADO">Azure DevOps</option>
-          </select>
-          <small style={{ fontSize: '0.75rem', marginTop: '4px', display: 'block' }} className="criterion-desc">
-            Tahmin ekranında varsayılan olarak bu sistem seçili gelir.
-          </small>
-        </label>
-        <label>Tahmin Tekniği
-          <select value={technique} onChange={e => setTechnique(e.target.value as Technique)}>
-            {TECHNIQUES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-        </label>
-        <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', marginBottom: '1rem' }} className="criterion-desc">
-          {technique === 'FIBONACCI' && 'Fibonacci: 1, 2, 3, 5, 8, 13, 21, 34, 55 — En yaygın kullanılan skala'}
-          {technique === 'MODIFIED_FIBONACCI' && 'Değiştirilmiş Fibonacci: 1, 2, 3, 5, 8, 13, 20, 40, 100'}
-          {technique === 'TSHIRT' && 'Tişört: XS, S, M, L, XL, XXL — Sayı yerine boyut ifadesi'}
-          {technique === 'POWERS_OF_TWO' && 'İkinin Kuvvetleri: 1, 2, 4, 8, 16, 32'}
-          {technique === 'LINEAR' && 'Doğrusal: 1–10 — Basit ve sezgisel'}
+
+        {/* Ayarlar — 2 sütun */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1.5rem' }}>
+          <label>Kaynak Sistem
+            <select value={sourceSystem} onChange={e => setSourceSystem(e.target.value as 'JIRA' | 'ADO')}>
+              <option value="JIRA">JIRA</option>
+              <option value="ADO">Azure DevOps</option>
+            </select>
+            <small style={{ fontSize: '0.72rem', marginTop: '3px', display: 'block' }} className="criterion-desc">
+              Tahmin ekranında varsayılan sistem
+            </small>
+          </label>
+          <label>Tahmin Tekniği
+            <select value={technique} onChange={e => setTechnique(e.target.value as Technique)}>
+              {TECHNIQUES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+            <small style={{ fontSize: '0.72rem', marginTop: '3px', display: 'block' }} className="criterion-desc">
+              {technique === 'FIBONACCI' && '1, 2, 3, 5, 8, 13, 21, 34, 55'}
+              {technique === 'MODIFIED_FIBONACCI' && '1, 2, 3, 5, 8, 13, 20, 40, 100'}
+              {technique === 'TSHIRT' && 'XS, S, M, L, XL, XXL'}
+              {technique === 'POWERS_OF_TWO' && '1, 2, 4, 8, 16, 32'}
+              {technique === 'LINEAR' && '1–10, basit ve sezgisel'}
+            </small>
+          </label>
         </div>
-        <button onClick={handleSaveGeneral} disabled={saving === 'general'} className="primary">
-          {saving === 'general' ? 'Kaydediliyor...' : 'Kaydet'}
-        </button>
-        {message && <div className="info" style={{ marginTop: '0.75rem' }}>{message}</div>}
+
+        <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button onClick={handleSaveGeneral} disabled={saving === 'general'} className="primary">
+            {saving === 'general' ? 'Kaydediliyor...' : 'Kaydet'}
+          </button>
+          {message && <span className="criterion-desc" style={{ fontSize: '0.8rem' }}>{message}</span>}
+        </div>
       </div>
 
       <div style={{ marginBottom: '2rem' }}>
