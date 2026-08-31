@@ -33,7 +33,7 @@ export default function App() {
   const [teams, setTeams] = useState<SavedTeam[]>(loadSavedTeams);
   const [teamId, setTeamId] = useState(() => localStorage.getItem('spee_team_id') || DEMO_TEAM_ID);
   const [teamConfig, setTeamConfig] = useState<TeamConfig | null>(null);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('spee_theme') === 'dark');
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('spee_theme_v2') === 'dark');
 
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
@@ -52,7 +52,7 @@ export default function App() {
 
   useEffect(() => {
     document.body.classList.toggle('dark-mode', darkMode);
-    localStorage.setItem('spee_theme', darkMode ? 'dark' : 'light');
+    localStorage.setItem('spee_theme_v2', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
   useEffect(() => {

@@ -120,12 +120,13 @@ header {
   z-index: 200;
   height: var(--header-h);
   background: var(--bg-header);
-  box-shadow: var(--shadow-header);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   padding: 0 1.5rem;
   gap: 1rem;
-  transition: background var(--t), box-shadow var(--t);
+  transition: background var(--t), box-shadow var(--t), border-color var(--t);
 }
 
 .header-inner {
@@ -335,9 +336,9 @@ header h1 {
 .dropdown-hint { font-size: 0.75rem; color: var(--text-muted); transition: color var(--t); }
 .dropdown-error { font-size: 0.78rem; color: var(--red); }
 
-/* ── Navigation – tab strip ─────────────────────────────────────── */
+/* ── Navigation – pill tabs ─────────────────────────────────────── */
 nav {
-  background: var(--bg-header);
+  background: var(--bg-base);
   border-bottom: 1px solid var(--border);
   transition: background var(--t), border-color var(--t);
   overflow-x: auto;
@@ -352,7 +353,9 @@ nav::-webkit-scrollbar { display: none; }
   align-items: center;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 0 1.25rem;
+  gap: 0.25rem;
+  height: var(--nav-h);
   min-width: max-content;
 }
 
@@ -360,24 +363,29 @@ nav a {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0 1rem;
-  height: var(--nav-h);
+  padding: 0.35rem 0.875rem;
+  height: 32px;
+  border-radius: 999px;
   text-decoration: none;
   color: var(--text-secondary);
   font-size: 0.82rem;
   font-weight: 500;
-  border-bottom: 2px solid transparent;
   white-space: nowrap;
-  transition: color var(--t), border-color var(--t);
-  position: relative;
+  border: 1px solid transparent;
+  transition: background var(--t), color var(--t), border-color var(--t);
 }
 
-nav a:hover { color: var(--text-primary); }
+nav a:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
 
 nav a.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
   font-weight: 600;
+  border-color: transparent;
 }
 
 .nav-spacer { flex: 1; min-width: 1rem; }
@@ -386,10 +394,14 @@ nav a.active {
   font-size: 0.78rem !important;
   color: var(--text-muted) !important;
 }
-.nav-standalone:hover { color: var(--accent) !important; }
+.nav-standalone:hover {
+  color: var(--text-primary) !important;
+  background: var(--bg-surface) !important;
+}
 .nav-standalone.active {
+  background: transparent !important;
   color: var(--accent) !important;
-  border-bottom-color: transparent !important;
+  border-color: transparent !important;
 }
 
 /* ── Main content ───────────────────────────────────────────────── */
