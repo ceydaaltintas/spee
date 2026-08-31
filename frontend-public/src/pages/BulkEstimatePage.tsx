@@ -100,10 +100,10 @@ function downloadResults(results: BulkResult[]) {
   XLSX.writeFile(wb, 'spee_bulk_sonuclar.xlsx');
 }
 
-function confidenceColor(score: number) {
-  if (score >= 0.7) return '#6ee7b7';
-  if (score >= 0.4) return '#fbbf24';
-  return '#fca5a5';
+function confidenceClass(score: number): string {
+  if (score >= 0.7) return 'stat-value-green';
+  if (score >= 0.4) return 'stat-value-amber';
+  return 'stat-value-red';
 }
 
 const BULK_DRAFT_KEY = 'spee_bulk_draft';
@@ -188,7 +188,6 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]!;
       try {
-        // 1. Metin analizi
         const analyzeRes = await api.post('/analyze-text', {
           title: row.title,
           description: row.description,
@@ -197,7 +196,6 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
         const { suggestedCriteria, detectedTaskType } = analyzeRes.data;
         const taskType = row.taskType ?? detectedTaskType ?? 'USER_STORY';
 
-        // 2. Tahmin
         const sourceId = row.itemId && row.sprintId
           ? `${row.sprintId}#${row.itemId}`
           : row.itemId ?? `bulk-${Date.now()}-${i}`;
@@ -242,7 +240,6 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
       }
 
       setProgress(i + 1);
-      // Groq rate limit için küçük bekleme
       if (i < rows.length - 1) await new Promise(r => setTimeout(r, 4000));
     }
 
@@ -254,7 +251,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
   return (
     <div>
       <h2>Toplu Tahmin</h2>
-      <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+      <p className="criterion-desc" style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>
         Excel dosyasından PBI listesi yükle, her biri için metin analizi + tahmin çalıştır.
       </p>
 
@@ -263,23 +260,23 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
         <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.75rem' }}>
           1. Excel Dosyası Yükle
         </div>
-        <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '0.75rem' }}>
-          Zorunlu: <code style={{ background: '#0f172a', padding: '1px 5px', borderRadius: '3px' }}>başlık</code>
-          &nbsp; Opsiyonel: <code style={{ background: '#0f172a', padding: '1px 5px', borderRadius: '3px' }}>açıklama</code>
-          <code style={{ background: '#0f172a', padding: '1px 5px', borderRadius: '3px', marginLeft: '4px' }}>görev tipi</code>
-          <code style={{ background: '#0f172a', padding: '1px 5px', borderRadius: '3px', marginLeft: '4px' }}>sprint</code>
+        <p className="criterion-desc" style={{ fontSize: '0.78rem', marginBottom: '0.75rem' }}>
+          Zorunlu: <code>başlık</code>
+          &nbsp; Opsiyonel: <code>açıklama</code>
+          <code style={{ marginLeft: '4px' }}>görev tipi</code>
+          <code style={{ marginLeft: '4px' }}>sprint</code>
           <span style={{ marginLeft: '6px' }}>· sprint serbest metin (ör. Sprint-42) · Bilinmeyen görev tipleri Kullanıcı Hikayesi olarak işlenir · Maks. 50 satır</span>
-        </div>
+        </p>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => fileRef.current?.click()} className="primary">
             Dosya Seç
           </button>
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handleFile} />
-          <button onClick={downloadTemplate} style={{ color: '#38bdf8' }}>
+          <button onClick={downloadTemplate}>
             Şablon İndir
           </button>
           {fileName && (
-            <span style={{ fontSize: '0.8rem', color: '#6ee7b7' }}>✓ {fileName} ({rows.length} satır)</span>
+            <span className="criterion-desc" style={{ fontSize: '0.8rem' }}>✓ {fileName} ({rows.length} satır)</span>
           )}
         </div>
         {error && <div className="error" style={{ marginTop: '0.75rem' }}>{error}</div>}
@@ -291,42 +288,44 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
           <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.75rem' }}>
             2. Önizleme — {rows.length} PBI
           </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Başlık</th>
-                <th>Açıklama</th>
-                <th>Görev Tipi</th>
-                <th>Sprint</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={i}>
-                  <td style={{ fontWeight: 500 }}>{r.title}</td>
-                  <td style={{ color: '#64748b', fontSize: '0.8rem', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {r.description ?? '—'}
-                  </td>
-                  <td>
-                    {r.taskType
-                      ? <span style={{ color: '#38bdf8', fontSize: '0.8rem' }}>{TASK_TYPE_LABELS[r.taskType] ?? r.taskType}</span>
-                      : <span style={{ color: '#475569', fontSize: '0.8rem' }}>otomatik</span>}
-                  </td>
-                  <td style={{ color: '#64748b', fontSize: '0.8rem' }}>{r.sprintId ?? '—'}</td>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Başlık</th>
+                  <th>Açıklama</th>
+                  <th>Görev Tipi</th>
+                  <th>Sprint</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ fontWeight: 500 }}>{r.title}</td>
+                    <td className="criterion-desc" style={{ fontSize: '0.8rem', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {r.description ?? '—'}
+                    </td>
+                    <td>
+                      {r.taskType
+                        ? <span className="badge-accent">{TASK_TYPE_LABELS[r.taskType] ?? r.taskType}</span>
+                        : <span className="criterion-desc" style={{ fontSize: '0.8rem' }}>otomatik</span>}
+                    </td>
+                    <td className="criterion-desc" style={{ fontSize: '0.8rem' }}>{r.sprintId ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           <div style={{ marginTop: '1rem' }}>
             {processing ? (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748b', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '4px' }} className="criterion-desc">
                   <span>Analiz ediliyor...</span>
                   <span>{progress} / {rows.length}</span>
                 </div>
-                <div style={{ width: '100%', height: '6px', background: '#1e293b', borderRadius: '3px' }}>
-                  <div style={{ width: `${(progress / rows.length) * 100}%`, height: '100%', background: '#38bdf8', borderRadius: '3px', transition: 'width 0.3s' }} />
+                <div className="progress-track" style={{ width: '100%', height: '6px', display: 'block', marginLeft: 0 }}>
+                  <div className="progress-fill" style={{ width: `${(progress / rows.length) * 100}%` }} />
                 </div>
               </div>
             ) : (
@@ -345,7 +344,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
             <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>
               Sonuçlar — {results.length} tahmin
             </div>
-            <button onClick={() => downloadResults(results)} style={{ color: '#38bdf8', fontSize: '0.8rem' }}>
+            <button onClick={() => downloadResults(results)} style={{ fontSize: '0.8rem' }}>
               Excel'e Aktar
             </button>
           </div>
@@ -361,53 +360,55 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
                 <>
                   <div className="stat-card"><div className="stat-label">Toplam SP</div><div className="stat-value">{totalSP}</div></div>
                   <div className="stat-card"><div className="stat-label">Ort. SP</div><div className="stat-value">{avgSP}</div></div>
-                  <div className="stat-card"><div className="stat-label">Ort. Güven</div><div style={{ fontWeight: 700, fontSize: '1.1rem', color: confidenceColor(avgConf) }}>%{Math.round(avgConf * 100)}</div></div>
+                  <div className="stat-card"><div className="stat-label">Ort. Güven</div><div className={confidenceClass(avgConf)}>%{Math.round(avgConf * 100)}</div></div>
                 </>
               );
             })()}
           </div>
 
-          <table>
-            <thead>
-              <tr>
-                <th>Başlık</th>
-                <th>Görev Tipi</th>
-                <th style={{ textAlign: 'center' }}>SP</th>
-                <th style={{ textAlign: 'center' }}>Güven</th>
-                <th style={{ textAlign: 'center' }}>Kriter</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((r, i) => (
-                <tr key={i}>
-                  <td style={{ fontWeight: 500 }}>
-                    {r.title}
-                    {r.sourceId && !r.sourceId.startsWith('bulk-') && (
-                      <><br /><small style={{ color: '#64748b', fontWeight: 400 }}>{r.sourceId}</small></>
-                    )}
-                  </td>
-                  <td style={{ fontSize: '0.8rem', color: '#64748b' }}>{TASK_TYPE_LABELS[r.taskType] ?? r.taskType}</td>
-                  <td style={{ textAlign: 'center' }}>
-                    {r.error
-                      ? <><span style={{ color: '#fca5a5', fontSize: '0.78rem' }}>hata</span><br /><small style={{ color: '#fca5a5', fontSize: '0.7rem', opacity: 0.8 }}>{r.error}</small></>
-                      : <strong style={{ color: '#38bdf8', fontSize: '1rem' }}>{r.suggestedSP}</strong>}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    {!r.error && (
-                      <span style={{ color: confidenceColor(r.confidenceScore), fontWeight: 600, fontSize: '0.85rem' }}>
-                        %{Math.round(r.confidenceScore * 100)}
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
-                    {r.error
-                      ? <span style={{ color: '#fca5a5' }} title={r.error}>!</span>
-                      : r.autoFilledCount}
-                  </td>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Başlık</th>
+                  <th>Görev Tipi</th>
+                  <th style={{ textAlign: 'center' }}>SP</th>
+                  <th style={{ textAlign: 'center' }}>Güven</th>
+                  <th style={{ textAlign: 'center' }}>Kriter</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {results.map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ fontWeight: 500 }}>
+                      {r.title}
+                      {r.sourceId && !r.sourceId.startsWith('bulk-') && (
+                        <><br /><small className="criterion-desc" style={{ fontWeight: 400 }}>{r.sourceId}</small></>
+                      )}
+                    </td>
+                    <td className="criterion-desc" style={{ fontSize: '0.8rem' }}>{TASK_TYPE_LABELS[r.taskType] ?? r.taskType}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      {r.error
+                        ? <><span className="stat-value-red" style={{ fontSize: '0.78rem' }}>hata</span><br /><small className="stat-value-red" style={{ fontSize: '0.7rem', opacity: 0.8 }}>{r.error}</small></>
+                        : <strong className="stat-value-accent">{r.suggestedSP}</strong>}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {!r.error && (
+                        <span className={confidenceClass(r.confidenceScore)} style={{ fontSize: '0.85rem' }}>
+                          %{Math.round(r.confidenceScore * 100)}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'center', fontSize: '0.8rem' }} className="criterion-desc">
+                      {r.error
+                        ? <span className="stat-value-red" title={r.error}>!</span>
+                        : r.autoFilledCount}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
             <button onClick={() => { setRows([]); setResults([]); setFileName(''); localStorage.removeItem(BULK_DRAFT_KEY); if (fileRef.current) fileRef.current.value = ''; }}>

@@ -43,7 +43,7 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
   return (
     <div>
       <h2>Kalibrasyon</h2>
-      <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1rem' }}>
+      <p className="criterion-desc" style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
         Sistemin tahminleri ile takımın onayladığı gerçek SP değerlerini karşılaştırır.
         Belirli bir sprint girerek o sprinte ait işleri filtrele, ya da tümünü analiz et.
       </p>
@@ -59,20 +59,20 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
       </div>
 
       <div className="form-row" style={{ alignItems: 'flex-end' }}>
-        <label>Sprint Filtresi
+        <label style={{ maxWidth: '320px' }}>Sprint Filtresi
           <input
             value={sprintFilter}
             onChange={e => setSprintFilter(e.target.value)}
             placeholder="Sprint-42 (boş bırakırsan tümü)"
           />
-          <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
-            Virgülle birden fazla sprint girebilirsin
-          </small>
         </label>
         <button onClick={handleCalibrate} disabled={loading} className="primary">
           {loading ? 'Analiz ediliyor...' : 'Analiz Et'}
         </button>
       </div>
+      <p className="criterion-desc" style={{ fontSize: '0.75rem', marginTop: '-0.5rem', marginBottom: '1rem' }}>
+        Virgülle birden fazla sprint girebilirsin
+      </p>
 
       {error && <div className="error">{error}</div>}
 
@@ -81,12 +81,12 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
           {/* Özet */}
           <div className="result-card">
             <h3>Sapma Analizi
-              <small style={{ fontWeight: 400, color: '#64748b', marginLeft: '8px', fontSize: '0.8rem' }}>
+              <small style={{ fontWeight: 400, marginLeft: '8px', fontSize: '0.8rem' }} className="criterion-desc">
                 {estimations.length} onaylı tahmin
               </small>
             </h3>
             {estimations.length === 0 ? (
-              <p style={{ color: '#64748b' }}>
+              <p className="criterion-desc">
                 Bu filtre için onaylanmış tahmin bulunamadı.
                 Tahmin ekranında sprint bilgisi girerek onaylama yapın.
               </p>
@@ -114,6 +114,7 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
 
                 {/* Sprint bazlı iş listesi */}
                 <h4 style={{ marginTop: '1.25rem' }}>İş Bazlı Karşılaştırma</h4>
+                <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
@@ -131,11 +132,11 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
                       return (
                         <tr key={e.estimationId}>
                           <td><strong>{e.sourceId}</strong></td>
-                          <td style={{ color: '#64748b', fontSize: '0.8rem' }}>{e.sprintId ?? '—'}</td>
+                          <td className="criterion-desc" style={{ fontSize: '0.8rem' }}>{e.sprintId ?? '—'}</td>
                           <td>{TASK_TYPE_LABELS[e.taskType] ?? e.taskType}</td>
                           <td style={{ textAlign: 'center' }}>{e.suggestedSP}</td>
                           <td style={{ textAlign: 'center', fontWeight: 700 }}>{e.approvedSP}</td>
-                          <td style={{ textAlign: 'center', color: diff > 0 ? '#fbbf24' : diff < 0 ? '#fca5a5' : '#6ee7b7', fontWeight: 600 }}>
+                          <td style={{ textAlign: 'center', fontWeight: 600 }} className={diff > 0 ? 'stat-value-amber' : diff < 0 ? 'stat-value-red' : 'stat-value-green'}>
                             {diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : '='}
                           </td>
                         </tr>
@@ -143,7 +144,8 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
                     })}
                   </tbody>
                 </table>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
+                </div>
+                <div className="criterion-desc" style={{ fontSize: '0.75rem', marginTop: '0.5rem' }}>
                   + = motor fazla tahmin etti &nbsp;·&nbsp; − = motor az tahmin etti &nbsp;·&nbsp; = = tam isabet
                 </div>
 
@@ -151,6 +153,7 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
                 {Object.keys(result.driftAnalysis.byTaskType).length > 0 && (
                   <>
                     <h4 style={{ marginTop: '1.25rem' }}>Görev Tipi Bazlı Sapma</h4>
+                    <div className="table-wrap">
                     <table>
                       <thead><tr><th>Görev Tipi</th><th>Sapma</th><th>Yön</th><th>Örnek</th></tr></thead>
                       <tbody>
@@ -164,13 +167,14 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   </>
                 )}
 
                 {result.driftAnalysis.shouldCalibrate && (
                   <div className="approve-section" style={{ marginTop: '1.25rem' }}>
                     {applied ? (
-                      <div style={{ background: '#065f46', border: '1px solid #6ee7b7', borderRadius: '8px', padding: '0.75rem 1rem', color: '#6ee7b7' }}>
+                      <div className="approve-success">
                         ✓ Ağırlıklar güncellendi. Bir sonraki tahminlerden itibaren geçerli olacak.
                       </div>
                     ) : (
@@ -178,7 +182,7 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
                         <button onClick={handleApplyWeights} className="primary">
                           Önerilen Ağırlıkları Uygula
                         </button>
-                        <small style={{ color: '#64748b' }}>
+                        <small className="criterion-desc">
                           Mevcut ağırlıklar sapma yönüne göre ayarlanır, oranlar korunur.
                         </small>
                       </>

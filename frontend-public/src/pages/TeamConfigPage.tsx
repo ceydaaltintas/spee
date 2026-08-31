@@ -274,7 +274,8 @@ export default function TeamConfigPage({
 
             {isOpen && (
               <div className="accordion-body" style={{ padding: '1rem' }}>
-                <table style={{ marginBottom: '0.75rem' }}>
+                <div className="table-wrap" style={{ marginBottom: '0.75rem' }}>
+                <table>
                   <thead>
                     <tr>
                       <th style={{ width: '32px' }}></th>
@@ -344,6 +345,7 @@ export default function TeamConfigPage({
                       })}
                   </tbody>
                 </table>
+                </div>
 
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   <button onClick={() => handleSaveWeights(tt)} disabled={saving === tt} className="primary">

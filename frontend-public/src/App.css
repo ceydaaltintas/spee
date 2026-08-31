@@ -1,18 +1,18 @@
 /* ── Design tokens – Light mode default ─────────────────────────── */
 :root {
-  --bg-base:      #f4f6f9;
+  --bg-base:      #f7f8fa;
   --bg-surface:   #ffffff;
-  --bg-elevated:  #f0f2f5;
+  --bg-elevated:  #f1f3f6;
   --bg-input:     #ffffff;
   --bg-header:    #ffffff;
 
-  --border:         #e2e8f0;
-  --border-strong:  #cbd5e1;
+  --border:         #dde1e7;
+  --border-strong:  #c1c8d4;
   --border-focus:   #4f46e5;
 
-  --text-primary:   #0f172a;
-  --text-secondary: #475569;
-  --text-muted:     #94a3b8;
+  --text-primary:   #111827;
+  --text-secondary: #374151;
+  --text-muted:     #6b7280;
 
   --accent:         #4f46e5;
   --accent-hover:   #4338ca;
@@ -1074,8 +1074,8 @@ td.sp { font-weight: 700; color: var(--accent); font-size: 1rem; }
 .template-system-btn:hover { background: var(--bg-elevated); border-color: var(--border-strong); }
 
 /* ── Progress bars ──────────────────────────────────────────────── */
-.progress-track { height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; display: inline-block; width: 100px; vertical-align: middle; margin-left: 8px; border: 1px solid var(--border); }
-.progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
+.progress-track { height: 7px; background: var(--border-strong); border-radius: 4px; overflow: hidden; display: inline-block; width: 100px; vertical-align: middle; margin-left: 8px; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.4s ease; }
 .confidence-track { width: 100%; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin: 0.75rem 0 0.25rem; }
 .confidence-fill { height: 100%; background: linear-gradient(90deg, var(--red), var(--amber), var(--green)); border-radius: 4px; transition: width 0.5s; }
 .confidence-labels { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.75rem; }
@@ -1171,6 +1171,18 @@ input[type="range"]:focus { box-shadow: none; }
 
 /* ── Team name ──────────────────────────────────────────────────── */
 .team-name { font-weight: 600; font-size: 0.9rem; color: var(--text-primary); transition: color var(--t); }
+
+/* ── Code ────────────────────────────────────────────────────────── */
+code {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-family: 'SF Mono', ui-monospace, monospace;
+  font-size: 0.82em;
+  transition: background var(--t), border-color var(--t), color var(--t);
+}
 
 /* ── Scrollbar ──────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }

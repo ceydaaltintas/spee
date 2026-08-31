@@ -183,6 +183,7 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
               )}
             </div>
           )}
+          <div className="table-wrap">
           <table>
             <thead>
               <tr>
@@ -265,6 +266,7 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
               ))}
             </tbody>
           </table>
+          </div>
 
           {hasMore && (
             <div style={{ textAlign: 'center', marginTop: '1rem' }}>
