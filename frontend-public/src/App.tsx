@@ -33,7 +33,7 @@ export default function App() {
   const [teams, setTeams] = useState<SavedTeam[]>(loadSavedTeams);
   const [teamId, setTeamId] = useState(() => localStorage.getItem('spee_team_id') || DEMO_TEAM_ID);
   const [teamConfig, setTeamConfig] = useState<TeamConfig | null>(null);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('spee_theme') !== 'light');
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('spee_theme') === 'dark');
 
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
@@ -51,7 +51,7 @@ export default function App() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    document.body.classList.toggle('light-mode', !darkMode);
+    document.body.classList.toggle('dark-mode', darkMode);
     localStorage.setItem('spee_theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
@@ -138,6 +138,7 @@ export default function App() {
 
             {/* ── Header ── */}
             <header>
+              <div className="header-inner">
               <div className="header-brand">
                 <div className="header-logo-wrap">
                   <svg width="20" height="20" viewBox="0 0 48 46" fill="none">
@@ -258,17 +259,20 @@ export default function App() {
                   )}
                 </button>
               </div>
+              </div>
             </header>
 
             {/* ── Nav ── */}
             <nav>
-              <NavLink to="/" end>Tahmin</NavLink>
-              <NavLink to="/history">Geçmiş</NavLink>
-              <NavLink to="/config">Ayarlar</NavLink>
-              <NavLink to="/calibration">Kalibrasyon</NavLink>
-              <NavLink to="/bulk">Toplu Tahmin</NavLink>
-              <div className="nav-spacer" />
-              <NavLink to="/standalone" className="nav-standalone">Bağımsız Mod →</NavLink>
+              <div className="nav-inner">
+                <NavLink to="/" end>Tahmin</NavLink>
+                <NavLink to="/history">Geçmiş</NavLink>
+                <NavLink to="/config">Ayarlar</NavLink>
+                <NavLink to="/calibration">Kalibrasyon</NavLink>
+                <NavLink to="/bulk">Toplu Tahmin</NavLink>
+                <div className="nav-spacer" />
+                <NavLink to="/standalone" className="nav-standalone">Bağımsız Mod →</NavLink>
+              </div>
             </nav>
 
             <main>
