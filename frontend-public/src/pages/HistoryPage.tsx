@@ -226,31 +226,29 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
                   <td>{TASK_TYPE_LABELS[item.taskType] ?? item.taskType}</td>
                   <td className="sp">{item.suggestedSP}</td>
                   <td>
-                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center', minHeight: '28px' }}>
-                      {item.approvedSP ? (
-                        <span style={{ fontWeight: 600, color: 'var(--green-text)' }}>{item.approvedSP}</span>
-                      ) : (
-                        <>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={editingSP[item.estimationId] ?? ''}
-                            onChange={e => setEditingSP(prev => ({ ...prev, [item.estimationId]: e.target.value.replace(/\D/g, '') }))}
-                            onKeyDown={e => e.key === 'Enter' && handleApprove(item.estimationId, editingSP[item.estimationId] ? undefined : item.suggestedSP)}
-                            placeholder={String(item.suggestedSP)}
-                            style={{ width: '44px', padding: '2px 6px', height: '28px', fontSize: '0.82rem', textAlign: 'center' }}
-                          />
-                          <button
-                            onClick={() => handleApprove(item.estimationId, editingSP[item.estimationId] ? undefined : item.suggestedSP)}
-                            disabled={approvingId === item.estimationId}
-                            className="btn-approve"
-                            style={{ padding: '2px 8px', fontSize: '0.75rem', height: '28px' }}
-                          >
-                            {approvingId === item.estimationId ? '...' : 'Onayla'}
-                          </button>
-                        </>
-                      )}
-                    </div>
+                    {item.approvedSP ? (
+                      <span className="sp" style={{ color: 'var(--green-text)' }}>{item.approvedSP}</span>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={editingSP[item.estimationId] ?? ''}
+                          onChange={e => setEditingSP(prev => ({ ...prev, [item.estimationId]: e.target.value.replace(/\D/g, '') }))}
+                          onKeyDown={e => e.key === 'Enter' && handleApprove(item.estimationId, editingSP[item.estimationId] ? undefined : item.suggestedSP)}
+                          placeholder={String(item.suggestedSP)}
+                          style={{ width: '44px', padding: '2px 6px', height: '28px', fontSize: '0.82rem', textAlign: 'center' }}
+                        />
+                        <button
+                          onClick={() => handleApprove(item.estimationId, editingSP[item.estimationId] ? undefined : item.suggestedSP)}
+                          disabled={approvingId === item.estimationId}
+                          className="btn-approve"
+                          style={{ padding: '2px 8px', fontSize: '0.75rem', height: '28px' }}
+                        >
+                          {approvingId === item.estimationId ? '...' : 'Onayla'}
+                        </button>
+                      </div>
+                    )}
                   </td>
                   <td>%{(item.confidenceScore * 100).toFixed(0)}</td>
                   <td>
