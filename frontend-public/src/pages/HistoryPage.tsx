@@ -89,14 +89,30 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
   }
 
   async function handleCompletion(estimationId: string, value: boolean | null) {
+    const oldValue = completionMap[estimationId] ?? null;
     setCompletionMap(prev => ({ ...prev, [estimationId]: value }));
+    const item = items.find(i => i.estimationId === estimationId);
+    if (item?.approvedSP) {
+      setSprintStats(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          sprints: prev.sprints.map(s => {
+            if (s.sprintId !== (item as any).sprintId) return s;
+            let { completedSP, notCompletedSP } = s;
+            if (oldValue === true) completedSP -= item.approvedSP!;
+            if (oldValue === false) notCompletedSP -= item.approvedSP!;
+            if (value === true) completedSP += item.approvedSP!;
+            if (value === false) notCompletedSP += item.approvedSP!;
+            return { ...s, completedSP, notCompletedSP };
+          }),
+        };
+      });
+    }
     try {
       await api.patch(`/history/${teamId}/${estimationId}/completion`, { completedInSprint: value });
-      api.get<{ sprints: any[]; avgCompletedSP: number | null }>(`/history/${teamId}/sprint-stats`)
-        .then(r => setSprintStats(r.data))
-        .catch(() => {});
     } catch {
-      setCompletionMap(prev => ({ ...prev, [estimationId]: completionMap[estimationId] ?? null }));
+      setCompletionMap(prev => ({ ...prev, [estimationId]: oldValue }));
     }
   }
 
