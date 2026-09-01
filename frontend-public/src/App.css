@@ -222,25 +222,24 @@ header h1 {
 
 .team-chip-text {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.35rem;
   min-width: 0;
-  max-width: 160px;
-  line-height: 1.25;
 }
 
 .team-chip-name {
   font-weight: 600;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 120px;
 }
 
 .team-chip-meta {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   font-weight: 400;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
