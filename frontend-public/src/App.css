@@ -56,13 +56,13 @@ body.dark-mode {
   --bg-input:     #1e2a3a;
   --bg-header:    #0d1220;
 
-  --border:         rgba(255,255,255,0.07);
-  --border-strong:  rgba(255,255,255,0.13);
+  --border:         rgba(255,255,255,0.11);
+  --border-strong:  rgba(255,255,255,0.20);
   --border-focus:   #818cf8;
 
   --text-primary:   #f1f5f9;
   --text-secondary: #94a3b8;
-  --text-muted:     #4a5a6a;
+  --text-muted:     #6e8099;
 
   --accent:         #818cf8;
   --accent-hover:   #6366f1;
@@ -747,11 +747,12 @@ table {
 th {
   padding: 0.6rem 0.875rem;
   text-align: left;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-weight: 700;
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.07em;
+  white-space: nowrap;
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border);
   transition: color var(--t), border-color var(--t);
