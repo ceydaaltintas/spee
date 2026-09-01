@@ -177,7 +177,7 @@ function EstimationDemo({ isTR }: { isTR: boolean }) {
             {isTR ? 'Kriterler — User Story' : 'Criteria — User Story'}
           </div>
           {CRITERIA.map(([label, val, pct], i) => (
-            <AnimBar key={i} label={label} val={val} pct={pct as number} trigger={phase >= 2} delay={i * 160} />
+            <AnimBar key={i} label={label as string} val={val as string} pct={pct as number} trigger={phase >= 2} delay={i * 160} />
           ))}
         </div>
 
@@ -261,7 +261,7 @@ function TextAnalysisDemo({ isTR }: { isTR: boolean }) {
               <span style={{ fontSize: 9.5, background: 'var(--accent-dim)', color: 'var(--accent-text)', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>AUTO</span>
             </div>
             {INFERRED.map(([label, val, pct, color], i) => (
-              <AnimBar key={i} label={label} val={val} pct={pct as number} color={color} trigger={phase >= 3} delay={i * 140} />
+              <AnimBar key={i} label={label as string} val={val as string} pct={pct as number} color={color as string} trigger={phase >= 3} delay={i * 140} />
             ))}
             <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
               <div style={{ flex: 1, padding: '9px', background: 'var(--accent)', borderRadius: 8, textAlign: 'center' }}>
