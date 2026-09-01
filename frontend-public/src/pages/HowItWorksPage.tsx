@@ -199,16 +199,31 @@ export default function HowItWorksPage() {
         .hiw-step-hidden  { opacity: 0; }
 
         .hiw-task-card {
-          border: 1.5px solid var(--border);
+          border: 2px solid var(--border);
           border-radius: 12px;
           padding: 0.75rem 1rem;
           cursor: pointer;
           display: flex; align-items: center; gap: 0.6rem;
-          transition: border-color 0.15s, background 0.15s, transform 0.15s;
+          transition: border-color 0.15s, background 0.15s, transform 0.15s, box-shadow 0.15s;
           background: var(--bg-surface);
+          position: relative;
         }
-        .hiw-task-card:hover { border-color: var(--accent-border); transform: translateY(-1px); }
-        .hiw-task-card.active { border-color: var(--accent); background: var(--accent-dim); }
+        .hiw-task-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(79,70,229,0.12); }
+        .hiw-task-card.active {
+          border-color: var(--accent);
+          background: var(--accent);
+          box-shadow: 0 4px 18px rgba(79,70,229,0.3);
+          transform: translateY(-1px);
+        }
+        .hiw-task-card.active .hiw-card-label { color: #fff; }
+        .hiw-task-card.active .hiw-card-desc  { color: rgba(255,255,255,0.78); }
+        .hiw-task-card-check {
+          position: absolute; top: 6px; right: 8px;
+          width: 18px; height: 18px; border-radius: 50%;
+          background: rgba(255,255,255,0.25);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 10px; color: #fff;
+        }
 
         .hiw-dot-row { display: flex; gap: 6px; align-items: center; }
         .hiw-dot {
@@ -408,10 +423,13 @@ export default function HowItWorksPage() {
                         className={`hiw-task-card${taskType === tt.key ? ' active' : ''}`}
                         onClick={() => { setTaskType(tt.key); setVals({}); }}
                       >
+                        {taskType === tt.key && (
+                          <div className="hiw-task-card-check">✓</div>
+                        )}
                         <span style={{ fontSize: '1.2rem' }}>{tt.icon}</span>
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: '0.82rem' }}>{isTR ? tt.labelTR : tt.labelEN}</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{isTR ? tt.descTR : tt.descEN}</div>
+                          <div className="hiw-card-label" style={{ fontWeight: 700, fontSize: '0.82rem' }}>{isTR ? tt.labelTR : tt.labelEN}</div>
+                          <div className="hiw-card-desc" style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{isTR ? tt.descTR : tt.descEN}</div>
                         </div>
                       </button>
                     ))}
