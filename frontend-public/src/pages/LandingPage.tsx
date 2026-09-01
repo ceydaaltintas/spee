@@ -211,9 +211,9 @@ export default function LandingPage() {
             letterSpacing: '-0.03em',
           }}>
             {isTR ? (
-              <>Story Point tahmini<br /><span style={{ color: 'var(--accent-text)' }}>yapay zeka ile</span></>
+              <>Takımınızı tanıyan<br /><span style={{ color: 'var(--accent-text)' }}>tahmin motoru</span></>
             ) : (
-              <>Story Point estimation<br /><span style={{ color: 'var(--accent-text)' }}>powered by AI</span></>
+              <>The estimation engine<br /><span style={{ color: 'var(--accent-text)' }}>that knows your team</span></>
             )}
           </h1>
 
@@ -245,7 +245,7 @@ export default function LandingPage() {
             </button>
             <button
               className="lp-secondary-btn"
-              onClick={() => navigate('/estimate')}
+              onClick={() => navigate('/how')}
               style={{
                 background: 'transparent',
                 border: '1.5px solid var(--border-strong)',
@@ -255,7 +255,7 @@ export default function LandingPage() {
                 transition: 'all 0.18s ease',
               }}
             >
-              {isTR ? 'Demo Dene' : 'Try Demo'}
+              {isTR ? 'Nasıl Çalışır?' : 'How It Works'}
             </button>
           </div>
 

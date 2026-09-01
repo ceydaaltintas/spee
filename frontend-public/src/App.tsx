@@ -7,6 +7,7 @@ import CalibrationPage from './pages/CalibrationPage';
 import StandalonePage from './pages/StandalonePage';
 import BulkEstimatePage from './pages/BulkEstimatePage';
 import LandingPage from './pages/LandingPage';
+import HowItWorksPage from './pages/HowItWorksPage';
 import api from './api/client';
 import type { TeamConfig } from './api/types';
 import { LangProvider, useLang } from './contexts/LangContext';
@@ -145,6 +146,7 @@ function AppInner() {
       <Routes>
         <Route path="/standalone" element={<StandalonePage />} />
         <Route path="/" element={<LandingPage />} />
+        <Route path="/how" element={<HowItWorksPage />} />
         <Route path="*" element={
           <div className="app">
 
