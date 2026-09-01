@@ -121,158 +121,247 @@ function Section({ reverse, label, title, desc, features, browser }: {
 }
 
 /* ══════════════════════════════════════════════
-   DEMO 1 — Estimation (criteria → SP)
+   DEMO 1 — Estimation (real SPEE UI: select + scale buttons + result card)
 ══════════════════════════════════════════════ */
 function EstimationDemo({ isTR }: { isTR: boolean }) {
   const { ref, inView } = useInView(0.2);
   const [phase, setPhase] = useState(0);
+  const [activeScale, setActiveScale] = useState([0, 0, 0, 0]);
+
+  const CRITERIA = isTR
+    ? [
+        { key: 'Teknik Karmaşıklık', desc: 'Mimari etki ve kod karmaşıklığı', active: 4 },
+        { key: 'Kapsam Netliği',     desc: 'Gereksinimlerin ne kadar belirli olduğu', active: 2 },
+        { key: 'Test Yükü',          desc: 'Test senaryosu sayısı ve zorluğu', active: 3 },
+        { key: 'Alan Bilgisi',       desc: 'Ekibin bu alandaki deneyimi', active: 3 },
+      ]
+    : [
+        { key: 'Technical Complexity', desc: 'Architectural impact and code complexity', active: 4 },
+        { key: 'Scope Clarity',        desc: 'How well-defined the requirements are', active: 2 },
+        { key: 'Test Load',            desc: 'Number and complexity of test scenarios', active: 3 },
+        { key: 'Domain Knowledge',     desc: 'Team experience in this area', active: 3 },
+      ];
+
   const sp = useCountUp(8, phase >= 3, 0);
+  const confidence = useCountUp(78, phase >= 3, 200);
 
   useEffect(() => {
     if (!inView) return;
     const ts = [
-      setTimeout(() => setPhase(1), 300),
-      setTimeout(() => setPhase(2), 900),
-      setTimeout(() => setPhase(3), 1600),
+      setTimeout(() => setPhase(1), 200),
+      setTimeout(() => setPhase(2), 700),
+      setTimeout(() => setPhase(3), 2000),
     ];
     return () => ts.forEach(clearTimeout);
   }, [inView]);
 
-  const TYPES = [
-    { k: 'USER_STORY', i: '📋', l: isTR ? 'User Story' : 'User Story', sel: true },
-    { k: 'BUG',        i: '🐛', l: isTR ? 'Hata Düzeltme' : 'Bug Fix', sel: false },
-    { k: 'DEVOPS',     i: '⚙️', l: 'DevOps', sel: false },
-  ];
-
-  const CRITERIA = isTR
-    ? [['Teknik Karmaşıklık','4/5',80],['Kapsam Netliği','2/5',40],['Test Yükü','3/5',60],['Alan Bilgisi','3/5',60]]
-    : [['Technical Complexity','4/5',80],['Scope Clarity','2/5',40],['Test Load','3/5',60],['Domain Knowledge','3/5',60]];
+  useEffect(() => {
+    if (phase < 2) return;
+    CRITERIA.forEach((c, i) => {
+      setTimeout(() => setActiveScale(prev => { const n = [...prev]; n[i] = c.active; return n; }), i * 260);
+    });
+  }, [phase]);
 
   return (
     <MockBrowser url="spee.app/estimate">
       <div ref={ref}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 8 }}>
+        {/* Task type select */}
+        <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 4, opacity: phase >= 1 ? 1 : 0, transition: 'opacity .3s' }}>
           {isTR ? 'Görev Tipi' : 'Task Type'}
+        </label>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          border: '1px solid var(--border)', borderRadius: 6, padding: '7px 10px',
+          background: 'var(--bg-surface)', fontSize: 13, fontWeight: 500, marginBottom: 14,
+          opacity: phase >= 1 ? 1 : 0, transition: 'opacity .3s',
+        }}>
+          <span>📋 {isTR ? 'User Story' : 'User Story'}</span>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 9 }}>▼</span>
         </div>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-          {TYPES.map((t, i) => (
-            <div key={t.k} style={{
-              display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px',
-              borderRadius: 8,
-              border: `1.5px solid ${t.sel ? 'var(--accent)' : 'var(--border)'}`,
-              background: t.sel ? 'var(--accent)' : 'var(--bg-surface)',
-              color: t.sel ? '#fff' : 'var(--text-primary)',
-              fontSize: 12, fontWeight: 600,
-              opacity: phase >= 1 ? 1 : 0,
-              transform: phase >= 1 ? 'none' : 'translateY(6px)',
-              transition: `opacity .3s ${i * 80}ms, transform .3s ${i * 80}ms`,
+
+        {/* Criteria rows */}
+        <div style={{ opacity: phase >= 2 ? 1 : 0, transition: 'opacity .4s', marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>{isTR ? 'Kriterler' : 'Criteria'}</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            <span style={{ fontFamily: 'monospace', fontSize: 10 }}>4/12</span>
+          </div>
+          {CRITERIA.map((c, ci) => (
+            <div key={ci} style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              borderBottom: ci < CRITERIA.length - 1 ? '1px solid var(--border)' : 'none',
+              padding: '8px 4px',
             }}>
-              {t.i} {t.l}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.key}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 1 }}>{c.desc}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+                {[1,2,3,4,5].map(v => (
+                  <div key={v} style={{
+                    width: 24, height: 24, borderRadius: '50%',
+                    border: `1.5px solid ${activeScale[ci] === v ? 'transparent' : 'var(--border)'}`,
+                    background: activeScale[ci] === v ? 'var(--accent)' : 'var(--bg-base)',
+                    color: activeScale[ci] === v ? '#fff' : 'var(--text-secondary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10.5, fontWeight: activeScale[ci] === v ? 700 : 400,
+                    transition: 'all .3s',
+                  }}>{v}</div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
 
-        <div style={{ opacity: phase >= 2 ? 1 : 0, transition: 'opacity .4s' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 10 }}>
-            {isTR ? 'Kriterler — User Story' : 'Criteria — User Story'}
+        {/* Result card */}
+        {phase >= 3 && (
+          <div style={{ padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
+              <div style={{ width: 54, height: 54, borderRadius: 8, background: 'var(--accent-dim)', border: '2px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--accent)' }}>{sp}</span>
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.85 }}>
+                <div><strong style={{ color: 'var(--text-primary)' }}>{isTR ? 'Önerilen:' : 'Suggested:'}</strong> {sp} SP</div>
+                <div><strong style={{ color: 'var(--text-primary)' }}>{isTR ? 'Teknik:' : 'Technique:'}</strong> Fibonacci</div>
+                <div>
+                  <strong style={{ color: 'var(--text-primary)' }}>{isTR ? 'Güven:' : 'Confidence:'}</strong>{' '}
+                  <span style={{ color: 'var(--green)', fontWeight: 700 }}>%{confidence}</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ height: 5, background: 'var(--bg-base)', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: 'var(--green)', width: `${confidence}%`, borderRadius: 3, transition: 'width 1.2s' }} />
+            </div>
           </div>
-          {CRITERIA.map(([label, val, pct], i) => (
-            <AnimBar key={i} label={label as string} val={val as string} pct={pct as number} trigger={phase >= 2} delay={i * 160} />
-          ))}
-        </div>
-
-        <div style={{
-          marginTop: 14, padding: '12px 18px', borderRadius: 10,
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          background: phase >= 3 ? 'var(--accent)' : 'var(--bg-base)',
-          transition: 'background .5s',
-        }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: phase >= 3 ? 'rgba(255,255,255,.8)' : 'var(--text-secondary)' }}>
-            {isTR ? 'SP Önerisi' : 'SP Suggestion'}
-          </span>
-          <span style={{ fontSize: 30, fontWeight: 900, color: phase >= 3 ? '#fff' : 'var(--accent)', lineHeight: 1, transition: 'color .5s' }}>
-            {phase >= 3 ? sp : '—'}
-          </span>
-        </div>
+        )}
       </div>
     </MockBrowser>
   );
 }
 
 /* ══════════════════════════════════════════════
-   DEMO 2 — Text Analysis (typewriter → auto criteria)
+   DEMO 2 — Text Analysis (real SPEE autofill panel UI)
 ══════════════════════════════════════════════ */
 function TextAnalysisDemo({ isTR }: { isTR: boolean }) {
   const { ref, inView } = useInView(0.2);
   const [phase, setPhase] = useState(0);
+  const [activeScale, setActiveScale] = useState([0, 0, 0, 0]);
 
-  const textTR = 'Google OAuth2 entegrasyonu. Session yönetimi ve 2FA desteği. Mevcut auth sistemiyle backward compat zorunlu.';
-  const textEN = 'Google OAuth2 integration. Session management and 2FA support. Must maintain backward compat with existing auth.';
-  const text = isTR ? textTR : textEN;
-  const typed = useTypewriter(text, phase >= 1, 26);
-  const sp = useCountUp(8, phase >= 3, 0);
+  const titleTR = 'Google OAuth2 entegrasyonu, 2FA ve session yönetimi';
+  const titleEN = 'Google OAuth2 integration, 2FA and session management';
+  const titleText = isTR ? titleTR : titleEN;
+  const typed = useTypewriter(titleText, phase >= 2, 34);
+
+  const CRITERIA = isTR
+    ? [
+        { key: 'Teknik Karmaşıklık', active: 4, source: 'AI'   },
+        { key: 'Bağımlılık Sayısı',  active: 3, source: 'AI'   },
+        { key: 'Test Yükü',          active: 4, source: 'auto' },
+        { key: 'Alan Bilgisi',       active: 3, source: 'auto' },
+      ]
+    : [
+        { key: 'Technical Complexity', active: 4, source: 'AI'   },
+        { key: 'Dependency Count',     active: 3, source: 'AI'   },
+        { key: 'Test Load',            active: 4, source: 'auto' },
+        { key: 'Domain Knowledge',     active: 3, source: 'auto' },
+      ];
 
   useEffect(() => {
     if (!inView) return;
-    const typeDur = text.length * 26 + 300;
+    const typeDur = titleText.length * 34 + 400;
     const ts = [
       setTimeout(() => setPhase(1), 300),
-      setTimeout(() => setPhase(2), 300 + typeDur),
-      setTimeout(() => setPhase(3), 300 + typeDur + 1100),
+      setTimeout(() => setPhase(2), 600),
+      setTimeout(() => setPhase(3), 600 + typeDur),
+      setTimeout(() => setPhase(4), 600 + typeDur + 1000),
     ];
     return () => ts.forEach(clearTimeout);
-  }, [inView, text]);
+  }, [inView, titleText]);
 
-  const INFERRED = isTR
-    ? [['Teknik Karmaşıklık','4/5',80,'var(--accent)'],['Bağımlılık Sayısı','3/5',60,'var(--accent)'],['Test Yükü','4/5',80,'var(--accent)'],['Alan Bilgisi','3/5',60,'var(--green)']]
-    : [['Technical Complexity','4/5',80,'var(--accent)'],['Dependency Count','3/5',60,'var(--accent)'],['Test Load','4/5',80,'var(--accent)'],['Domain Knowledge','3/5',60,'var(--green)']];
+  useEffect(() => {
+    if (phase < 4) return;
+    CRITERIA.forEach((c, i) => {
+      setTimeout(() => setActiveScale(prev => { const n = [...prev]; n[i] = c.active; return n; }), i * 200);
+    });
+  }, [phase]);
 
   return (
-    <MockBrowser url="spee.app/bulk">
+    <MockBrowser url="spee.app/estimate">
       <div ref={ref}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 8 }}>
-          {isTR ? 'PBI Açıklaması (Türkçe veya İngilizce)' : 'PBI Description (Turkish or English)'}
-        </div>
+        {/* Collapsible panel button */}
         <div style={{
-          background: 'var(--bg-base)', border: '1px solid var(--border)',
-          borderRadius: 8, padding: '10px 12px',
-          fontSize: 12.5, lineHeight: 1.65, minHeight: 66,
-          color: 'var(--text-primary)', fontFamily: 'monospace', marginBottom: 14,
+          display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px',
+          borderRadius: 6, background: 'var(--bg-surface)', border: '1px solid var(--border)',
+          fontSize: 12, fontWeight: 600, marginBottom: phase >= 1 ? 8 : 0, cursor: 'pointer',
         }}>
-          {typed}
-          {phase === 1 && (
-            <span style={{ display: 'inline-block', width: 2, height: 13, background: 'var(--accent)', verticalAlign: 'middle', marginLeft: 1, animation: 'hiw-blink .7s step-end infinite' }} />
+          <span style={{ fontSize: 8, color: 'var(--text-secondary)' }}>{phase >= 1 ? '▲' : '▼'}</span>
+          {isTR ? 'PBI Metinden Otomatik Doldur' : 'Auto-fill from PBI Text'}
+          {phase >= 4 && (
+            <span style={{ fontSize: 9.5, background: 'var(--accent-dim)', color: 'var(--accent-text)', fontWeight: 700, padding: '1px 6px', borderRadius: 4, marginLeft: 4 }}>
+              · 4 {isTR ? 'kriter dolduruldu' : 'criteria filled'}
+            </span>
           )}
         </div>
 
-        {phase >= 2 && phase < 3 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14 }}>
-            <div style={{ width: 13, height: 13, border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'hiw-spin .7s linear infinite', flexShrink: 0 }} />
-            {isTR ? 'Metin analiz ediliyor...' : 'Analysing text...'}
+        {/* Panel body */}
+        {phase >= 1 && (
+          <div style={{ marginBottom: 12, padding: '10px', background: 'var(--bg-base)', borderRadius: 8, border: '1px solid var(--border)' }}>
+            <input
+              readOnly value={typed}
+              placeholder={isTR ? 'PBI başlığı...' : 'PBI title...'}
+              style={{ width: '100%', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 5, padding: '6px 10px', fontSize: 11.5, background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: 'inherit', marginBottom: 6 }}
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1, height: 30, border: '1px solid var(--border)', borderRadius: 5, background: 'var(--bg-surface)', fontSize: 11, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', padding: '0 10px' }}>
+                {phase >= 2 ? (isTR ? 'Güvenlik kısıtları var...' : 'Security constraints apply...') : ''}
+              </div>
+              <button style={{ padding: '0 14px', borderRadius: 5, border: 'none', background: phase === 3 ? 'var(--bg-elevated)' : 'var(--accent)', color: phase === 3 ? 'var(--text-secondary)' : '#fff', fontWeight: 700, fontSize: 11.5, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+                {phase === 3 && <span style={{ width: 10, height: 10, border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'hiw-spin .7s linear infinite', display: 'inline-block' }} />}
+                {phase === 3 ? (isTR ? 'Analiz...' : 'Analysing...') : (isTR ? 'Analiz Et' : 'Analyse')}
+              </button>
+            </div>
           </div>
         )}
 
-        {phase >= 3 && (
+        {/* Criteria with AI/auto badge */}
+        {phase >= 4 && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent-text)' }}>
-                {isTR ? 'Tespit Edilen Kriterler' : 'Auto-detected Criteria'}
-              </div>
-              <span style={{ fontSize: 9.5, background: 'var(--accent-dim)', color: 'var(--accent-text)', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>AUTO</span>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>{isTR ? 'Kriterler' : 'Criteria'}</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              <span style={{ fontFamily: 'monospace', fontSize: 10 }}>4/12</span>
             </div>
-            {INFERRED.map(([label, val, pct, color], i) => (
-              <AnimBar key={i} label={label as string} val={val as string} pct={pct as number} color={color as string} trigger={phase >= 3} delay={i * 140} />
+            {CRITERIA.map((c, ci) => (
+              <div key={ci} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                borderBottom: ci < CRITERIA.length - 1 ? '1px solid var(--border)' : 'none',
+                padding: '7px 4px',
+                opacity: phase >= 4 ? 1 : 0,
+                transition: `opacity .3s ${ci * 100}ms`,
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                    {c.key}
+                    <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: c.source === 'AI' ? 'rgba(5,150,105,0.15)' : 'var(--accent-dim)', color: c.source === 'AI' ? 'var(--green)' : 'var(--accent-text)' }}>
+                      {c.source}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+                  {[1,2,3,4,5].map(v => (
+                    <div key={v} style={{
+                      width: 22, height: 22, borderRadius: '50%',
+                      border: `1.5px solid ${activeScale[ci] === v ? 'transparent' : 'var(--border)'}`,
+                      background: activeScale[ci] === v ? 'var(--accent)' : 'var(--bg-base)',
+                      color: activeScale[ci] === v ? '#fff' : 'var(--text-secondary)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 10, fontWeight: activeScale[ci] === v ? 700 : 400,
+                      transition: 'all .3s',
+                    }}>{v}</div>
+                  ))}
+                </div>
+              </div>
             ))}
-            <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-              <div style={{ flex: 1, padding: '9px', background: 'var(--accent)', borderRadius: 8, textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{sp}</div>
-                <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,.75)', marginTop: 3 }}>Story Points</div>
-              </div>
-              <div style={{ flex: 1, padding: '9px', background: 'var(--bg-base)', borderRadius: 8, textAlign: 'center' }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--green)' }}>82%</div>
-                <div style={{ fontSize: 9.5, color: 'var(--text-secondary)', marginTop: 3 }}>{isTR ? 'Güven' : 'Confidence'}</div>
-              </div>
-            </div>
           </>
         )}
       </div>
@@ -281,31 +370,29 @@ function TextAnalysisDemo({ isTR }: { isTR: boolean }) {
 }
 
 /* ══════════════════════════════════════════════
-   DEMO 3 — Bulk Estimation (rows appear one by one)
+   DEMO 3 — Bulk Estimation (real table: title | type | SP | confidence)
 ══════════════════════════════════════════════ */
 function BulkDemo({ isTR }: { isTR: boolean }) {
   const { ref, inView } = useInView(0.2);
   const [shown, setShown] = useState(0);
 
   const ROWS = isTR ? [
-    { task: 'Google OAuth2 entegrasyonu', type: 'User Story', sp: 8  },
-    { task: 'Login hatası düzeltme',      type: 'Bug',        sp: 3  },
-    { task: 'CI/CD pipeline güncelleme',  type: 'DevOps',     sp: 5  },
-    { task: 'Kullanıcı araştırması',      type: 'Analysis',   sp: 5  },
-    { task: 'Ödeme akışı performansı',    type: 'Performance',sp: 13 },
-    { task: 'Güvenlik açığı giderme',     type: 'Security',   sp: 8  },
+    { task: 'Google OAuth2 entegrasyonu', type: 'User Story', sp: 8,  conf: 85 },
+    { task: 'Login hatası düzeltme',      type: 'Bug',        sp: 3,  conf: 92 },
+    { task: 'CI/CD pipeline güncelleme',  type: 'DevOps',     sp: 5,  conf: 71 },
+    { task: 'Kullanıcı araştırması',      type: 'Analysis',   sp: 5,  conf: 68 },
+    { task: 'Ödeme akışı performansı',    type: 'User Story', sp: 13, conf: 79 },
   ] : [
-    { task: 'Google OAuth2 integration',  type: 'User Story', sp: 8  },
-    { task: 'Fix login bug',              type: 'Bug',        sp: 3  },
-    { task: 'Update CI/CD pipeline',      type: 'DevOps',     sp: 5  },
-    { task: 'User research session',      type: 'Analysis',   sp: 5  },
-    { task: 'Payment flow performance',   type: 'Performance',sp: 13 },
-    { task: 'Remediate security vuln',    type: 'Security',   sp: 8  },
+    { task: 'Google OAuth2 integration',  type: 'User Story', sp: 8,  conf: 85 },
+    { task: 'Fix login bug',              type: 'Bug',        sp: 3,  conf: 92 },
+    { task: 'Update CI/CD pipeline',      type: 'DevOps',     sp: 5,  conf: 71 },
+    { task: 'User research session',      type: 'Analysis',   sp: 5,  conf: 68 },
+    { task: 'Payment flow performance',   type: 'User Story', sp: 13, conf: 79 },
   ];
 
   useEffect(() => {
     if (!inView) return;
-    ROWS.forEach((_, i) => setTimeout(() => setShown(i + 1), 300 + i * 380));
+    ROWS.forEach((_, i) => setTimeout(() => setShown(i + 1), 400 + i * 400));
   }, [inView]);
 
   const pct = Math.round((shown / ROWS.length) * 100);
@@ -313,16 +400,16 @@ function BulkDemo({ isTR }: { isTR: boolean }) {
   return (
     <MockBrowser url="spee.app/bulk">
       <div ref={ref}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
             {isTR ? 'Excel Yüklendi' : 'Excel Loaded'}
-          </div>
+          </span>
           <span style={{ fontSize: 10.5, background: 'var(--accent-dim)', color: 'var(--accent-text)', fontWeight: 700, padding: '2px 8px', borderRadius: 5 }}>
             backlog_q3.xlsx · {ROWS.length} PBI
           </span>
         </div>
 
-        <div style={{ marginBottom: 14 }}>
+        <div style={{ marginBottom: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-secondary)', marginBottom: 4 }}>
             <span>{isTR ? 'Toplu analiz çalışıyor' : 'Running batch analysis'}</span>
             <span style={{ fontFamily: 'monospace' }}>{pct}%</span>
@@ -332,31 +419,34 @@ function BulkDemo({ isTR }: { isTR: boolean }) {
           </div>
         </div>
 
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border)' }}>
-              {[isTR ? 'Görev' : 'Task', isTR ? 'Tip' : 'Type', 'SP'].map((h, i) => (
-                <th key={i} style={{ textAlign: 'left', padding: '4px 8px 7px', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 10 }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {ROWS.map((r, i) => (
-              <tr key={i} style={{
-                borderBottom: i < ROWS.length - 1 ? '1px solid var(--border)' : 'none',
-                opacity: i < shown ? 1 : 0,
-                transform: i < shown ? 'none' : 'translateY(8px)',
-                transition: 'opacity .35s, transform .35s',
-              }}>
-                <td style={{ padding: '7px 8px', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.task}</td>
-                <td style={{ padding: '7px 8px' }}>
-                  <span style={{ fontSize: 9.5, fontWeight: 700, background: 'var(--accent-dim)', color: 'var(--accent-text)', padding: '2px 5px', borderRadius: 4 }}>{r.type}</span>
-                </td>
-                <td style={{ padding: '7px 8px', fontWeight: 900, color: 'var(--accent)', fontFamily: 'monospace', fontSize: 14 }}>{i < shown ? r.sp : '…'}</td>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+            <thead>
+              <tr style={{ background: 'var(--bg-base)' }}>
+                {[isTR?'Başlık':'Title', isTR?'Tip':'Type', 'SP', isTR?'Güven':'Conf.'].map((h, i) => (
+                  <th key={i} style={{ padding: '6px 8px', textAlign: 'left', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {ROWS.map((r, i) => (
+                <tr key={i} style={{
+                  borderBottom: i < ROWS.length - 1 ? '1px solid var(--border)' : 'none',
+                  opacity: i < shown ? 1 : 0,
+                  transform: i < shown ? 'none' : 'translateY(6px)',
+                  transition: 'opacity .3s, transform .3s',
+                }}>
+                  <td style={{ padding: '7px 8px', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11.5 }}>{r.task}</td>
+                  <td style={{ padding: '7px 8px' }}>
+                    <span style={{ fontSize: 9.5, fontWeight: 700, background: 'var(--accent-dim)', color: 'var(--accent-text)', padding: '2px 5px', borderRadius: 4 }}>{r.type}</span>
+                  </td>
+                  <td style={{ padding: '7px 8px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'monospace', fontSize: 13 }}>{r.sp}</td>
+                  <td style={{ padding: '7px 8px', fontWeight: 600, color: r.conf >= 80 ? 'var(--green)' : 'var(--accent-text)', fontSize: 11 }}>%{r.conf}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {shown >= ROWS.length && (
           <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(5,150,105,0.1)', border: '1px solid var(--green)', borderRadius: 8, fontSize: 12, color: 'var(--green)', fontWeight: 700 }}>
@@ -369,130 +459,147 @@ function BulkDemo({ isTR }: { isTR: boolean }) {
 }
 
 /* ══════════════════════════════════════════════
-   DEMO 4 — Calibration (sprints appear, bars grow)
+   DEMO 4 — Calibration (real SPEE table: issue | sprint | type | engine | approved | diff)
 ══════════════════════════════════════════════ */
 function CalibrationDemo({ isTR }: { isTR: boolean }) {
   const { ref, inView } = useInView(0.2);
-  const [shown, setShown] = useState(0);
+  const [phase, setPhase] = useState(0);
+  const [shownRows, setShownRows] = useState(0);
 
-  const SPRINTS = [
-    { est: 8,  act: 13, acc: 38 },
-    { est: 13, act: 13, acc: 62 },
-    { est: 5,  act: 8,  acc: 74 },
-    { est: 8,  act: 8,  acc: 87 },
-    { est: 5,  act: 5,  acc: 95 },
+  const ROWS = [
+    { id: 'PROJ-101', sprint: 'Sprint-40', type: isTR ? 'User Story' : 'User Story', engine: 8,  approved: 13, diff: +5 },
+    { id: 'PROJ-102', sprint: 'Sprint-40', type: isTR ? 'Bug' : 'Bug',               engine: 3,  approved: 3,  diff: 0  },
+    { id: 'PROJ-103', sprint: 'Sprint-41', type: isTR ? 'User Story' : 'User Story', engine: 13, approved: 8,  diff: -5 },
+    { id: 'PROJ-104', sprint: 'Sprint-41', type: isTR ? 'DevOps' : 'DevOps',         engine: 5,  approved: 5,  diff: 0  },
+    { id: 'PROJ-105', sprint: 'Sprint-42', type: isTR ? 'User Story' : 'User Story', engine: 8,  approved: 8,  diff: 0  },
   ];
 
   useEffect(() => {
     if (!inView) return;
-    SPRINTS.forEach((_, i) => setTimeout(() => setShown(i + 1), 200 + i * 520));
+    const ts = [
+      setTimeout(() => setPhase(1), 300),
+      ...ROWS.map((_, i) => setTimeout(() => setShownRows(i + 1), 900 + i * 350)),
+    ];
+    return () => ts.forEach(clearTimeout);
   }, [inView]);
 
   return (
     <MockBrowser url="spee.app/calibration">
       <div ref={ref}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 14 }}>
-          {isTR ? 'Kalibrasyon Geçmişi' : 'Calibration History'}
-        </div>
-        {SPRINTS.map((s, i) => {
-          const vis = i < shown;
-          const good = s.acc >= 85;
-          return (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '8px 10px', borderRadius: 8, marginBottom: 4,
-              background: vis && good ? 'rgba(5,150,105,0.08)' : 'transparent',
-              opacity: vis ? 1 : 0,
-              transform: vis ? 'none' : 'translateX(-10px)',
-              transition: 'opacity .35s, transform .35s, background .4s',
-            }}>
-              <span style={{ fontSize: 10.5, color: 'var(--text-secondary)', fontFamily: 'monospace', minWidth: 54 }}>Sprint {i + 1}</span>
-              <span style={{ fontSize: 11, minWidth: 92 }}>
-                <span style={{ color: 'var(--text-secondary)' }}>{isTR ? 'Th:' : 'Est:'} </span><strong>{s.est}</strong>
-                <span style={{ color: 'var(--text-secondary)', marginLeft: 8 }}>{isTR ? 'Ger:' : 'Act:'} </span>
-                <strong style={{ color: s.est === s.act ? 'var(--green)' : 'var(--text-primary)' }}>{s.act}</strong>
-              </span>
-              <div style={{ flex: 1, height: 6, background: 'var(--bg-base)', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', borderRadius: 3,
-                  background: good ? 'var(--green)' : 'var(--accent)',
-                  width: vis ? `${s.acc}%` : '0%',
-                  transition: 'width .9s cubic-bezier(.22,1,.36,1)',
-                }} />
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 700, minWidth: 34, textAlign: 'right', color: good ? 'var(--green)' : 'var(--accent-text)' }}>
-                {vis ? `${s.acc}%` : '—'}
-              </span>
+        {/* Sprint filter + button */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'flex-end', opacity: phase >= 1 ? 1 : 0, transition: 'opacity .3s' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 3 }}>{isTR ? 'Sprint Filtresi' : 'Sprint Filter'}</div>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 5, padding: '6px 10px', fontSize: 11, background: 'var(--bg-surface)', color: 'var(--text-secondary)' }}>
+              Sprint-40, Sprint-41, Sprint-42
             </div>
-          );
-        })}
-        {shown >= SPRINTS.length && (
-          <div style={{ marginTop: 10, padding: '8px 12px', background: 'var(--accent-dim)', borderRadius: 8, fontSize: 12, color: 'var(--accent-text)', fontWeight: 700 }}>
-            🎯 {isTR ? 'Motor kalibre edildi — %95 isabetlilik' : 'Engine calibrated — 95% accuracy'}
+          </div>
+          <div style={{ padding: '7px 14px', background: 'var(--accent)', borderRadius: 5, fontSize: 11.5, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+            {isTR ? 'Analiz Et' : 'Analyse'}
+          </div>
+        </div>
+
+        {/* Drift summary */}
+        {shownRows >= ROWS.length && (
+          <div style={{ display: 'flex', gap: 10, marginBottom: 10, padding: '8px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 10.5, flexWrap: 'wrap' }}>
+            <div><strong>{isTR ? 'Ort. Hata:' : 'Avg Error:'}</strong> <span style={{ color: 'var(--accent-text)', fontWeight: 700 }}>%22</span></div>
+            <div><strong>{isTR ? 'Yön:' : 'Direction:'}</strong> <span style={{ background: 'rgba(245,158,11,0.15)', color: '#d97706', fontWeight: 700, padding: '1px 5px', borderRadius: 3, fontSize: 9.5 }}>{isTR ? 'Düşük Tahmin' : 'Under-estimate'}</span></div>
+            <div><strong>{isTR ? 'Durum:' : 'Status:'}</strong> <span style={{ background: 'rgba(245,158,11,0.15)', color: '#d97706', fontWeight: 700, padding: '1px 5px', borderRadius: 3, fontSize: 9.5 }}>{isTR ? 'Kalibre gerekiyor' : 'Needs calibration'}</span></div>
           </div>
         )}
+
+        {/* Table */}
+        <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+            <thead>
+              <tr style={{ background: 'var(--bg-base)' }}>
+                {['Issue', isTR?'Sprint':'Sprint', isTR?'Tip':'Type', isTR?'Motor':'Engine', isTR?'Onay':'Approved', isTR?'Fark':'Diff'].map((h, i) => (
+                  <th key={i} style={{ padding: '6px 7px', textAlign: 'left', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {ROWS.map((r, i) => (
+                <tr key={i} style={{
+                  borderBottom: i < ROWS.length - 1 ? '1px solid var(--border)' : 'none',
+                  opacity: i < shownRows ? 1 : 0,
+                  transform: i < shownRows ? 'none' : 'translateY(6px)',
+                  transition: 'opacity .3s, transform .3s',
+                }}>
+                  <td style={{ padding: '6px 7px', fontWeight: 600, fontSize: 11 }}>{r.id}</td>
+                  <td style={{ padding: '6px 7px', color: 'var(--text-secondary)', fontSize: 10 }}>{r.sprint}</td>
+                  <td style={{ padding: '6px 7px', fontSize: 10.5 }}>{r.type}</td>
+                  <td style={{ padding: '6px 7px', textAlign: 'center', fontSize: 11 }}>{r.engine}</td>
+                  <td style={{ padding: '6px 7px', textAlign: 'center', fontWeight: 700, fontSize: 11 }}>{r.approved}</td>
+                  <td style={{ padding: '6px 7px', textAlign: 'center', fontWeight: 700, fontSize: 11, color: r.diff > 0 ? '#d97706' : r.diff < 0 ? '#ef4444' : 'var(--green)' }}>
+                    {r.diff > 0 ? `+${r.diff}` : r.diff < 0 ? String(r.diff) : '='}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </MockBrowser>
   );
 }
 
 /* ══════════════════════════════════════════════
-   DEMO 5 — Baselines (reference items)
+   DEMO 5 — Baselines (real template-baseline-btn grid)
 ══════════════════════════════════════════════ */
 function BaselinesDemo({ isTR }: { isTR: boolean }) {
   const { ref, inView } = useInView(0.2);
   const [shown, setShown] = useState(0);
 
   const ITEMS = isTR ? [
-    { name: 'Basit API Endpoint',    sp: 2,  type: 'User Story', desc: 'Tek CRUD endpoint, az bağımlılık, bilinen alan' },
-    { name: 'Tam CRUD Özelliği',     sp: 8,  type: 'User Story', desc: 'Frontend + backend, form, validasyon, testler' },
-    { name: 'Büyük Refaktör',        sp: 21, type: 'User Story', desc: 'Birden çok modülü etkileyen mimari değişiklik' },
-    { name: 'Basit Hata Düzeltme',   sp: 1,  type: 'Bug',        desc: 'Nedeni belli, izole bir bug fix' },
-    { name: 'Altyapı Geçişi',        sp: 13, type: 'DevOps',     desc: 'Ortam taşıma, downtime riski var' },
+    { name: 'Basit API Endpoint',    sp: 2,  type: 'User Story', count: 9,  desc: 'Tek CRUD endpoint, az bağımlılık' },
+    { name: 'Tam CRUD Özelliği',     sp: 8,  type: 'User Story', count: 9,  desc: 'Frontend + backend, form, testler' },
+    { name: 'Büyük Refaktör',        sp: 21, type: 'User Story', count: 10, desc: 'Mimari değişiklik, birden çok modül' },
+    { name: 'Basit Hata Düzeltme',   sp: 1,  type: 'Bug',        count: 7,  desc: 'Nedeni belli, izole bir bug fix' },
   ] : [
-    { name: 'Simple API Endpoint',   sp: 2,  type: 'User Story', desc: 'Single CRUD endpoint, few dependencies' },
-    { name: 'Full CRUD Feature',     sp: 8,  type: 'User Story', desc: 'Frontend + backend, form, validation, tests' },
-    { name: 'Major Refactor',        sp: 21, type: 'User Story', desc: 'Architectural change across multiple modules' },
-    { name: 'Simple Bug Fix',        sp: 1,  type: 'Bug',        desc: 'Known root cause, isolated fix' },
-    { name: 'Infrastructure Migration',sp:13,type: 'DevOps',     desc: 'Environment migration, downtime risk' },
+    { name: 'Simple API Endpoint',   sp: 2,  type: 'User Story', count: 9,  desc: 'Single CRUD, few dependencies' },
+    { name: 'Full CRUD Feature',     sp: 8,  type: 'User Story', count: 9,  desc: 'Frontend + backend, forms, tests' },
+    { name: 'Major Refactor',        sp: 21, type: 'User Story', count: 10, desc: 'Arch. change, multiple modules' },
+    { name: 'Simple Bug Fix',        sp: 1,  type: 'Bug',        count: 7,  desc: 'Known root cause, isolated' },
   ];
 
   useEffect(() => {
     if (!inView) return;
-    ITEMS.forEach((_, i) => setTimeout(() => setShown(i + 1), 150 + i * 280));
+    ITEMS.forEach((_, i) => setTimeout(() => setShown(i + 1), 200 + i * 300));
   }, [inView]);
 
   return (
     <MockBrowser url="spee.app/calibration">
       <div ref={ref}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 12 }}>
-          {isTR ? 'Baz İşler — Referans Kütüphane' : 'Baselines — Reference Library'}
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 10 }}>
+          {isTR ? 'Baz İşler' : 'Baselines'}
         </div>
-        {ITEMS.map((item, i) => (
-          <div key={i} style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
-            borderRadius: 9, marginBottom: 6,
-            border: '1px solid var(--border)', background: 'var(--bg-surface)',
-            opacity: i < shown ? 1 : 0,
-            transform: i < shown ? 'none' : 'translateY(8px)',
-            transition: 'opacity .35s, transform .35s',
-          }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 12.5 }}>{item.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{item.desc}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {ITEMS.map((item, i) => (
+            <div key={i} style={{
+              padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8,
+              background: 'var(--bg-surface)', cursor: 'pointer',
+              opacity: i < shown ? 1 : 0,
+              transform: i < shown ? 'none' : 'translateY(10px)',
+              transition: 'opacity .35s, transform .35s',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                <span style={{ background: 'var(--accent)', color: '#fff', fontWeight: 800, fontSize: 13, width: 30, height: 30, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'monospace' }}>
+                  {item.sp}
+                </span>
+                <span style={{ fontWeight: 600, fontSize: 11, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+              </div>
+              <div style={{ fontSize: 9.5, color: 'var(--accent-text)', fontWeight: 600 }}>
+                {item.type}
+                <span style={{ color: 'var(--text-secondary)', marginLeft: 5, fontWeight: 400 }}>· {item.count} {isTR ? 'kriter' : 'criteria'}</span>
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.desc}</div>
             </div>
-            <span style={{ fontSize: 9.5, fontWeight: 700, background: 'var(--accent-dim)', color: 'var(--accent-text)', padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}>{item.type}</span>
-            <div style={{ textAlign: 'center', minWidth: 38, flexShrink: 0 }}>
-              <div style={{ fontWeight: 900, fontSize: 19, color: 'var(--accent)', fontFamily: 'monospace', lineHeight: 1 }}>{item.sp}</div>
-              <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>SP</div>
-            </div>
-          </div>
-        ))}
-        {shown >= ITEMS.length && (
-          <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--bg-base)', borderRadius: 8, fontSize: 11.5, color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-            {isTR ? '↑ Motor yeni tahminlerde bu referanslara bakarak düzeltme yapar' : '↑ Engine consults these references to adjust future estimates'}
-          </div>
-        )}
+          ))}
+        </div>
+        <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic', padding: '8px 10px', background: 'var(--bg-base)', borderRadius: 8 }}>
+          {isTR ? '↑ Tahmin sırasında benzer baz işler otomatik karşılaştırılır' : '↑ Similar baselines are automatically compared during estimation'}
+        </div>
       </div>
     </MockBrowser>
   );
