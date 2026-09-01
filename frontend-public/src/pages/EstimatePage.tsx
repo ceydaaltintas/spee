@@ -813,13 +813,13 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                 )}
 
                 {c.type === 'boolean' && (
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '6px', cursor: 'pointer', minWidth: '56px' }}>
                     <input
                       type="checkbox"
                       checked={(selectedVal as boolean) ?? false}
                       onChange={e => setCriterion(c.key, 'boolean', e.target.checked)}
                     />
-                    <span style={{ fontSize: '0.78rem', minWidth: '36px' }} className="criterion-desc">
+                    <span style={{ fontSize: '0.78rem' }} className="criterion-desc">
                       {(selectedVal as boolean) ? t('yes') : t('no')}
                     </span>
                   </label>
