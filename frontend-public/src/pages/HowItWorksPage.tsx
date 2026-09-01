@@ -73,16 +73,12 @@ function Section({ reverse, label, title, desc, features, browser }: {
 }) {
   const { ref, inView } = useInView();
   return (
-    <div ref={ref} style={{
-      maxWidth: 1100, margin: '0 auto', padding: '72px 2rem',
-      display: 'grid', gridTemplateColumns: '1fr 1.25fr', gap: 52,
-      alignItems: 'start',
-      direction: reverse ? 'rtl' : 'ltr',
+    <div ref={ref} className={`hiw-section${reverse ? ' hiw-section-rtl' : ''}`} style={{
       opacity: inView ? 1 : 0,
       transform: inView ? 'none' : 'translateY(28px)',
       transition: 'opacity .65s, transform .65s',
     }}>
-      <div style={{ direction: 'ltr' }}>
+      <div className="hiw-section-inner">
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: 'var(--accent-text)', marginBottom: 10 }}>{label}</div>
         <h3 style={{ fontSize: 'clamp(20px,2.5vw,28px)', fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.15, marginBottom: 14 }}>{title}</h3>
         <p style={{ fontSize: 14.5, color: 'var(--text-secondary)', lineHeight: 1.75, marginBottom: 22, maxWidth: 420 }}>{desc}</p>
@@ -95,7 +91,7 @@ function Section({ reverse, label, title, desc, features, browser }: {
           ))}
         </ul>
       </div>
-      <div style={{ direction: 'ltr' }}>{browser}</div>
+      <div className="hiw-section-inner">{browser}</div>
     </div>
   );
 }
@@ -554,7 +550,7 @@ function BaselinesDemo({ isTR }: { isTR: boolean }) {
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 10 }}>
           {isTR ? 'Baz İşler' : 'Baselines'}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div className="hiw-baselines-grid">
           {ITEMS.map((item, i) => (
             <div key={i} style={{
               padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8,
@@ -627,6 +623,29 @@ export default function HowItWorksPage() {
         .hiw-hero-3 { animation: hiw-fade-up .6s .36s both; }
         .hiw-hero-4 { animation: hiw-fade-up .6s .5s both; }
         .hiw-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+        .hiw-section {
+          max-width: 1100px; margin: 0 auto; padding: 72px 2rem;
+          display: grid; grid-template-columns: 1fr 1.25fr; gap: 52px; align-items: start;
+        }
+        .hiw-section-rtl { direction: rtl; }
+        .hiw-section-inner { direction: ltr; }
+        .hiw-steps {
+          display: grid; grid-template-columns: repeat(5,1fr); gap: 14px;
+        }
+        .hiw-baselines-grid {
+          display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+        }
+        @media (max-width: 700px) {
+          .hiw-section {
+            grid-template-columns: 1fr !important;
+            direction: ltr !important;
+            padding: 44px 1.1rem 36px !important;
+            gap: 24px !important;
+          }
+          .hiw-section-rtl { direction: ltr !important; }
+          .hiw-steps { grid-template-columns: repeat(2,1fr) !important; }
+          .hiw-baselines-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
       <div style={{ minHeight: '100vh', background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
@@ -675,7 +694,7 @@ export default function HowItWorksPage() {
 
         {/* STEP CARDS */}
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '64px 2rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 14 }}>
+          <div className="hiw-steps">
             {[
               { num:'01', icon:'📋', tTR:'Görev Tipi',       tEN:'Task Type',       dTR:'8 farklı tip, her birinde ayrı kriter seti',   dEN:'8 task types, each with unique criteria', delay:0 },
               { num:'02', icon:'⚖️', tTR:'Kriter Skoru',     tEN:'Criteria Score',  dTR:'Her boyut 1–5 arası puanlanır ve ağırlıklanır',dEN:'Each dimension scored 1–5 and weighted',   delay:.08 },
