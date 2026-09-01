@@ -308,6 +308,22 @@ export const UI: Record<Lang, Record<string, string>> = {
     bulk_error_empty: 'Dosyada geçerli satır bulunamadı. "title" sütunu zorunlu.',
     bulk_error_max: 'Maksimum 50 satır destekleniyor.',
     bulk_error_read: 'Dosya okunamadı. Lütfen geçerli bir .xlsx veya .csv dosyası yükleyin.',
+
+    // System Templates
+    tmpl_simple_api_name: 'Basit API Endpoint',
+    tmpl_simple_api_desc: 'Tek bir CRUD endpoint, az bağımlılık, bilinen alan',
+    tmpl_full_crud_name: 'Tam CRUD Özelliği',
+    tmpl_full_crud_desc: 'Frontend + backend, form, tablo, validasyon, testler',
+    tmpl_big_refactor_name: 'Büyük Refaktör',
+    tmpl_big_refactor_desc: 'Birden çok modülü etkileyen mimari değişiklik',
+    tmpl_simple_bug_name: 'Basit Hata Düzeltme',
+    tmpl_simple_bug_desc: 'Nedeni belli, izole bir bug fix',
+    tmpl_complex_bug_name: 'Karmaşık Hata',
+    tmpl_complex_bug_desc: 'Tekrarlaması zor, kök nedeni belirsiz, geniş etki',
+    tmpl_user_research_name: 'Kullanıcı Araştırması',
+    tmpl_user_research_desc: 'Paydaş görüşmeleri, veri analizi, resmî rapor',
+    tmpl_infra_migration_name: 'Altyapı Geçişi',
+    tmpl_infra_migration_desc: 'Ortam taşıma, downtime riski, koordinasyon gerekli',
   },
 
   en: {
@@ -617,6 +633,22 @@ export const UI: Record<Lang, Record<string, string>> = {
     bulk_error_empty: 'No valid rows found in file. The "title" column is required.',
     bulk_error_max: 'Maximum 50 rows supported.',
     bulk_error_read: 'Could not read file. Please upload a valid .xlsx or .csv file.',
+
+    // System Templates
+    tmpl_simple_api_name: 'Simple API Endpoint',
+    tmpl_simple_api_desc: 'Single CRUD endpoint, few dependencies, known domain',
+    tmpl_full_crud_name: 'Full CRUD Feature',
+    tmpl_full_crud_desc: 'Frontend + backend, form, table, validation, tests',
+    tmpl_big_refactor_name: 'Large Refactor',
+    tmpl_big_refactor_desc: 'Architectural change affecting multiple modules',
+    tmpl_simple_bug_name: 'Simple Bug Fix',
+    tmpl_simple_bug_desc: 'Known cause, isolated bug fix',
+    tmpl_complex_bug_name: 'Complex Bug',
+    tmpl_complex_bug_desc: 'Hard to reproduce, unclear root cause, wide impact',
+    tmpl_user_research_name: 'User Research',
+    tmpl_user_research_desc: 'Stakeholder interviews, data analysis, formal report',
+    tmpl_infra_migration_name: 'Infrastructure Migration',
+    tmpl_infra_migration_desc: 'Environment migration, downtime risk, coordination required',
   },
 };
 

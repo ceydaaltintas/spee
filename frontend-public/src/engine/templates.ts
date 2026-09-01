@@ -1,16 +1,16 @@
 import type { CriteriaInput } from './types';
 
 export interface Template {
-  name: string;
-  description: string;
+  nameKey: string;
+  descKey: string;
   taskType: string;
   criteria: CriteriaInput;
 }
 
 export const TEMPLATES: Template[] = [
   {
-    name: 'Basit API Endpoint',
-    description: 'Tek bir CRUD endpoint, az bağımlılık, bilinen alan',
+    nameKey: 'tmpl_simple_api_name',
+    descKey: 'tmpl_simple_api_desc',
     taskType: 'USER_STORY',
     criteria: {
       technicalComplexity: { type: 'scale5', value: 2 },
@@ -25,8 +25,8 @@ export const TEMPLATES: Template[] = [
     },
   },
   {
-    name: 'Tam CRUD Özelliği',
-    description: 'Frontend + backend, form, tablo, validasyon, testler',
+    nameKey: 'tmpl_full_crud_name',
+    descKey: 'tmpl_full_crud_desc',
     taskType: 'USER_STORY',
     criteria: {
       technicalComplexity: { type: 'scale5', value: 3 },
@@ -41,8 +41,8 @@ export const TEMPLATES: Template[] = [
     },
   },
   {
-    name: 'Büyük Refaktör',
-    description: 'Birden çok modülü etkileyen mimari değişiklik',
+    nameKey: 'tmpl_big_refactor_name',
+    descKey: 'tmpl_big_refactor_desc',
     taskType: 'USER_STORY',
     criteria: {
       technicalComplexity: { type: 'scale5', value: 5 },
@@ -58,8 +58,8 @@ export const TEMPLATES: Template[] = [
     },
   },
   {
-    name: 'Basit Hata Düzeltme',
-    description: 'Nedeni belli, izole bir bug fix',
+    nameKey: 'tmpl_simple_bug_name',
+    descKey: 'tmpl_simple_bug_desc',
     taskType: 'BUG',
     criteria: {
       reproductionDifficulty: { type: 'scale5', value: 1 },
@@ -72,8 +72,8 @@ export const TEMPLATES: Template[] = [
     },
   },
   {
-    name: 'Karmaşık Hata',
-    description: 'Tekrarlaması zor, kök nedeni belirsiz, geniş etki',
+    nameKey: 'tmpl_complex_bug_name',
+    descKey: 'tmpl_complex_bug_desc',
     taskType: 'BUG',
     criteria: {
       reproductionDifficulty: { type: 'scale5', value: 4 },
@@ -86,8 +86,8 @@ export const TEMPLATES: Template[] = [
     },
   },
   {
-    name: 'Kullanıcı Araştırması',
-    description: 'Paydaş görüşmeleri, veri analizi, resmî rapor',
+    nameKey: 'tmpl_user_research_name',
+    descKey: 'tmpl_user_research_desc',
     taskType: 'ANALYSIS',
     criteria: {
       ambiguityLevel: { type: 'scale5', value: 4 },
@@ -100,8 +100,8 @@ export const TEMPLATES: Template[] = [
     },
   },
   {
-    name: 'Altyapı Geçişi',
-    description: 'Ortam taşıma, downtime riski, koordinasyon gerekli',
+    nameKey: 'tmpl_infra_migration_name',
+    descKey: 'tmpl_infra_migration_desc',
     taskType: 'DEVOPS',
     criteria: {
       productionRisk: { type: 'scale5', value: 4 },

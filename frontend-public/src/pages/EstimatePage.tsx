@@ -728,8 +728,8 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem' }}>
             {TEMPLATES.map((tmpl, i) => (
               <button key={i} onClick={() => applyTemplate(tmpl)} className="template-system-btn">
-                <div style={{ fontWeight: 600, marginBottom: '4px', fontSize: '0.85rem' }}>{tmpl.name}</div>
-                <div style={{ fontSize: '0.72rem' }} className="criterion-desc">{tmpl.description}</div>
+                <div style={{ fontWeight: 600, marginBottom: '4px', fontSize: '0.85rem' }}>{t(tmpl.nameKey)}</div>
+                <div style={{ fontSize: '0.72rem' }} className="criterion-desc">{t(tmpl.descKey)}</div>
                 <div style={{ fontSize: '0.7rem', marginTop: '4px' }} className="stat-value-muted">{taskTypeLabel(tmpl.taskType)}</div>
               </button>
             ))}
