@@ -120,7 +120,7 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
     if (!confirm(`"${sourceId}" tahminini silmek istediğine emin misin?`)) return;
     setDeletingId(estimationId);
     try {
-      await api.delete(`/history/${teamId}/${estimationId}`);
+      await api.delete(`/history/${teamId}/${estimationId}`, { data: {} });
       setItems(prev => prev.filter(i => i.estimationId !== estimationId));
       setTotal(t => t - 1);
     } catch (e: any) {
