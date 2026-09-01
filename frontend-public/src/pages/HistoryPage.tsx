@@ -238,16 +238,18 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
                   </td>
                   <td>%{(item.confidenceScore * 100).toFixed(0)}</td>
                   <td>
-                    <select
-                      value={completionMap[item.estimationId] === true ? 'true' : completionMap[item.estimationId] === false ? 'false' : ''}
-                      onChange={e => handleCompletion(item.estimationId, e.target.value === '' ? null : e.target.value === 'true')}
-                      className={`completion-select ${completionSelectClass(completionMap[item.estimationId] ?? null)}`}
-                      style={{ fontSize: '0.78rem', padding: '2px 4px' }}
-                    >
-                      <option value="">—</option>
-                      <option value="true">✓ Tamamlandı</option>
-                      <option value="false">✗ Tamamlanamadı</option>
-                    </select>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        className={`completion-toggle${completionMap[item.estimationId] === true ? ' completion-toggle-done' : ''}`}
+                        onClick={() => handleCompletion(item.estimationId, completionMap[item.estimationId] === true ? null : true)}
+                        title="Tamamlandı"
+                      >✓</button>
+                      <button
+                        className={`completion-toggle${completionMap[item.estimationId] === false ? ' completion-toggle-fail' : ''}`}
+                        onClick={() => handleCompletion(item.estimationId, completionMap[item.estimationId] === false ? null : false)}
+                        title="Tamamlanamadı"
+                      >✕</button>
+                    </div>
                   </td>
                   <td style={{ fontSize: '0.8rem' }} className="criterion-desc">
                     {new Date(item.createdAt).toLocaleDateString('tr-TR')}

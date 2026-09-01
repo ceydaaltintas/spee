@@ -12,7 +12,7 @@
 
   --text-primary:   #111827;
   --text-secondary: #374151;
-  --text-muted:     #6b7280;
+  --text-muted:     #4b5563;
 
   --accent:         #4f46e5;
   --accent-hover:   #4338ca;
@@ -604,11 +604,9 @@ button.btn-danger:disabled { opacity: 0.4; }
   overflow: hidden;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .criteria-grid { grid-template-columns: 1fr; }
-  .criteria-list {
-    grid-template-columns: 1fr;
-  }
+  .criteria-list { grid-template-columns: 1fr; }
   .criteria-row.left-col { border-right-color: transparent !important; }
 }
 
@@ -1081,7 +1079,13 @@ td.sp { font-weight: 700; color: var(--accent); font-size: 1rem; }
   color: var(--text-primary);
   font-family: inherit;
   width: 100%;
+  overflow: hidden;
   transition: background var(--t), border-color var(--t);
+}
+.template-system-btn > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .template-system-btn:hover { background: var(--bg-elevated); border-color: var(--border-strong); }
 
@@ -1174,6 +1178,32 @@ input[type="range"]:focus { box-shadow: none; }
   color: var(--red);
   border-color: var(--red-border);
 }
+
+.completion-toggle {
+  width: 28px; height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--t), color var(--t), border-color var(--t);
+  padding: 0;
+}
+.completion-toggle:hover { border-color: var(--border-strong); background: var(--bg-elevated); }
+.completion-toggle-done {
+  background: var(--green-dim);
+  color: var(--green-text);
+  border-color: var(--green-border);
+}
+.completion-toggle-done:hover { background: var(--green-dim); }
+.completion-toggle-fail {
+  background: var(--red-dim);
+  color: var(--red);
+  border-color: var(--red-border);
+}
+.completion-toggle-fail:hover { background: var(--red-dim); }
 
 /* ── Weight bar ─────────────────────────────────────────────────── */
 .weight-group { margin-bottom: 1.5rem; }

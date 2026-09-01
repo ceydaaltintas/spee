@@ -312,8 +312,6 @@ export default function App() {
                 <NavLink to="/config">Ayarlar</NavLink>
                 <NavLink to="/calibration">Kalibrasyon</NavLink>
                 <NavLink to="/bulk">Toplu Tahmin</NavLink>
-                <div className="nav-spacer" />
-                <NavLink to="/standalone" className="nav-standalone">Bağımsız Mod →</NavLink>
               </div>
             </nav>
 
