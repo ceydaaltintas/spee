@@ -227,7 +227,7 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
                   <td className="sp">{item.suggestedSP}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     {item.approvedSP ? (
-                      <span className="sp stat-value-green">{item.approvedSP}</span>
+                      <span style={{ fontWeight: 600, color: 'var(--green-text)' }}>{item.approvedSP}</span>
                     ) : (
                       <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
                         <input
