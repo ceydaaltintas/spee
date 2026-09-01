@@ -158,10 +158,12 @@ export default function App() {
                     onClick={() => { setShowTeamMenu(v => !v); setShowCreate(false); setShowJoin(false); setCreatedCode(''); }}
                   >
                     <span className="team-chip-dot" />
-                    <span className="team-chip-name">{currentTeam?.name ?? '—'}</span>
-                    {teamConfig && (
-                      <span className="team-chip-meta">{teamConfig.sourceSystem} · {teamConfig.activeTechnique}</span>
-                    )}
+                    <div className="team-chip-text">
+                      <span className="team-chip-name">{currentTeam?.name ?? '—'}</span>
+                      {teamConfig && (
+                        <span className="team-chip-meta">{teamConfig.sourceSystem} · {teamConfig.activeTechnique}</span>
+                      )}
+                    </div>
                     <svg className="team-chip-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
                       <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>

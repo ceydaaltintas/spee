@@ -220,23 +220,28 @@ header h1 {
   flex-shrink: 0;
 }
 
+.team-chip-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 160px;
+  line-height: 1.25;
+}
+
 .team-chip-name {
   font-weight: 600;
-  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .team-chip-meta {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: var(--text-muted);
   font-weight: 400;
-  display: none;
-}
-
-@media (min-width: 640px) {
-  .team-chip-meta { display: inline; }
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .team-chip-chevron {
