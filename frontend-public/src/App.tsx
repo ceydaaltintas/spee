@@ -8,6 +8,7 @@ import StandalonePage from './pages/StandalonePage';
 import BulkEstimatePage from './pages/BulkEstimatePage';
 import api from './api/client';
 import type { TeamConfig } from './api/types';
+import { LangProvider, useLang } from './contexts/LangContext';
 import './App.css';
 
 const DEMO_TEAM_ID = '407ba291-d355-467e-9c7a-68b213ec1cf2';
@@ -30,6 +31,15 @@ function saveTeams(teams: SavedTeam[]) {
 }
 
 export default function App() {
+  return (
+    <LangProvider>
+      <AppInner />
+    </LangProvider>
+  );
+}
+
+function AppInner() {
+  const { t, setLang, lang } = useLang();
   const [teams, setTeams] = useState<SavedTeam[]>(loadSavedTeams);
   const [teamId, setTeamId] = useState(() => localStorage.getItem('spee_team_id') || DEMO_TEAM_ID);
   const [teamConfig, setTeamConfig] = useState<TeamConfig | null>(null);
@@ -112,7 +122,7 @@ export default function App() {
       addAndSwitch(res.data);
       setCreatedCode(res.data.joinCode);
       setNewName('');
-    } catch { setCreateError('Takım oluşturulamadı.'); }
+    } catch { setCreateError(t('team_create_error')); }
     finally { setCreating(false); }
   }
 
@@ -123,7 +133,7 @@ export default function App() {
       const res = await api.get<{ id: string; name: string; sourceSystem: string }>(`/teams/join/${joinId.trim()}`);
       addAndSwitch({ id: res.data.id, name: res.data.name, sourceSystem: res.data.sourceSystem });
       setShowJoin(false); setJoinId('');
-    } catch { setJoinError('Geçersiz giriş kodu.'); }
+    } catch { setJoinError(t('team_join_error')); }
     finally { setJoining(false); }
   }
 
@@ -177,25 +187,25 @@ export default function App() {
                         {isFirstTime ? (
                           /* İlk kez gelen kullanıcı — yönlendirici CTA */
                           <>
-                            <div className="dropdown-title">Başlarken</div>
+                            <div className="dropdown-title">{t('team_getting_started')}</div>
                             <p style={{ fontSize: '0.78rem', padding: '0.1rem 0.5rem 0.6rem', color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-                              Kendi takımını oluştur ya da davet kodunla mevcut bir takıma katıl.
+                              {t('team_getting_started_desc')}
                             </p>
                             <button
                               className="primary"
                               style={{ width: '100%', marginBottom: '0.35rem', justifyContent: 'center' }}
                               onClick={() => { setShowCreate(true); setShowTeamMenu(false); }}
                             >
-                              + Yeni Takım Oluştur
+                              {t('team_create_new')}
                             </button>
                             <button
                               style={{ width: '100%', justifyContent: 'center' }}
                               onClick={() => { setShowJoin(true); setShowTeamMenu(false); }}
                             >
-                              Kod ile Takıma Katıl
+                              {t('team_join_code')}
                             </button>
                             <div className="dropdown-divider" style={{ margin: '0.5rem 0 0.3rem' }} />
-                            <div className="dropdown-title" style={{ paddingBottom: '0.2rem' }}>Demo mod</div>
+                            <div className="dropdown-title" style={{ paddingBottom: '0.2rem' }}>{t('team_demo')}</div>
                             {teams.filter(t => t.name).map(t => (
                               <button
                                 key={t.id}
@@ -210,7 +220,7 @@ export default function App() {
                         ) : (
                           /* Normal kullanıcı — takım listesi */
                           <>
-                            <div className="dropdown-title">Takımlar</div>
+                            <div className="dropdown-title">{t('team_teams')}</div>
                             {teams.filter(t => t.name).map(t => (
                               <button
                                 key={t.id}
@@ -224,10 +234,10 @@ export default function App() {
                             <div className="dropdown-divider" />
                             <div style={{ display: 'flex', gap: '0.4rem' }}>
                               <button className="dropdown-action" onClick={() => { setShowCreate(true); setShowTeamMenu(false); }}>
-                                + Yeni Takım
+                                {t('team_new_short')}
                               </button>
                               <button className="dropdown-action" onClick={() => { setShowJoin(true); setShowTeamMenu(false); }}>
-                                Kod ile Katıl
+                                {t('team_join_short')}
                               </button>
                             </div>
                           </>
@@ -238,17 +248,17 @@ export default function App() {
 
                   {showCreate && (
                     <div className="dropdown-panel" style={{ minWidth: '280px' }}>
-                      <div className="dropdown-title">Yeni Takım Oluştur</div>
+                      <div className="dropdown-title">{t('team_create_title')}</div>
                       {createdCode ? (
                         <>
-                          <p className="dropdown-hint">Takım oluşturuldu. Giriş kodunu paylaş:</p>
+                          <p className="dropdown-hint">{t('team_created_desc')}</p>
                           <div className="join-code-display">{createdCode}</div>
-                          <p className="dropdown-hint" style={{ textAlign: 'center' }}>Takım üyeleri bu kodla katılabilir</p>
-                          <button onClick={() => { setShowCreate(false); setCreatedCode(''); }}>Tamam</button>
+                          <p className="dropdown-hint" style={{ textAlign: 'center' }}>{t('team_members_hint')}</p>
+                          <button onClick={() => { setShowCreate(false); setCreatedCode(''); }}>{t('team_ok')}</button>
                         </>
                       ) : (
                         <>
-                          <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Takım adı" onKeyDown={e => e.key === 'Enter' && handleCreate()} autoFocus />
+                          <input value={newName} onChange={e => setNewName(e.target.value)} placeholder={t('team_name_placeholder')} onKeyDown={e => e.key === 'Enter' && handleCreate()} autoFocus />
                           <select value={newSource} onChange={e => setNewSource(e.target.value as 'JIRA' | 'ADO')}>
                             <option value="JIRA">Jira</option>
                             <option value="ADO">Azure DevOps</option>
@@ -256,9 +266,9 @@ export default function App() {
                           {createError && <p className="dropdown-error">{createError}</p>}
                           <div style={{ display: 'flex', gap: '0.4rem' }}>
                             <button className="primary" onClick={handleCreate} disabled={creating || !newName.trim()}>
-                              {creating ? '...' : 'Oluştur'}
+                              {creating ? '...' : t('team_create_btn')}
                             </button>
-                            <button onClick={() => { setShowCreate(false); setCreateError(''); }}>İptal</button>
+                            <button onClick={() => { setShowCreate(false); setCreateError(''); }}>{t('team_cancel')}</button>
                           </div>
                         </>
                       )}
@@ -267,11 +277,11 @@ export default function App() {
 
                   {showJoin && (
                     <div className="dropdown-panel" style={{ minWidth: '260px' }}>
-                      <div className="dropdown-title">Takıma Katıl</div>
+                      <div className="dropdown-title">{t('team_join_title')}</div>
                       <input
                         value={joinId}
                         onChange={e => setJoinId(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
-                        placeholder="Giriş kodu (AB3X7K)"
+                        placeholder={t('team_join_placeholder')}
                         onKeyDown={e => e.key === 'Enter' && joinId.length === 6 && handleJoin()}
                         autoFocus
                         style={{ letterSpacing: '0.2em', fontWeight: 600, textAlign: 'center' }}
@@ -279,9 +289,9 @@ export default function App() {
                       {joinError && <p className="dropdown-error">{joinError}</p>}
                       <div style={{ display: 'flex', gap: '0.4rem' }}>
                         <button className="primary" onClick={handleJoin} disabled={joining || joinId.length !== 6}>
-                          {joining ? '...' : 'Katıl'}
+                          {joining ? '...' : t('team_join_btn')}
                         </button>
-                        <button onClick={() => { setShowJoin(false); setJoinError(''); setJoinId(''); }}>İptal</button>
+                        <button onClick={() => { setShowJoin(false); setJoinError(''); setJoinId(''); }}>{t('team_cancel')}</button>
                       </div>
                     </div>
                   )}
@@ -289,8 +299,16 @@ export default function App() {
 
                 <button
                   className="theme-toggle"
+                  onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')}
+                  title={t('lang_toggle')}
+                  style={{ fontWeight: 700, fontSize: '0.75rem', minWidth: '32px' }}
+                >
+                  {t('lang_toggle')}
+                </button>
+                <button
+                  className="theme-toggle"
                   onClick={() => setDarkMode(d => !d)}
-                  title={darkMode ? 'Aydınlık mod' : 'Koyu mod'}
+                  title={darkMode ? t('theme_light') : t('theme_dark')}
                 >
                   {darkMode ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -309,11 +327,11 @@ export default function App() {
             {/* ── Nav ── */}
             <nav>
               <div className="nav-inner">
-                <NavLink to="/" end>Tahmin</NavLink>
-                <NavLink to="/history">Geçmiş</NavLink>
-                <NavLink to="/config">Ayarlar</NavLink>
-                <NavLink to="/calibration">Kalibrasyon</NavLink>
-                <NavLink to="/bulk">Toplu Tahmin</NavLink>
+                <NavLink to="/" end>{t('nav_estimate')}</NavLink>
+                <NavLink to="/history">{t('nav_history')}</NavLink>
+                <NavLink to="/config">{t('nav_settings')}</NavLink>
+                <NavLink to="/calibration">{t('nav_calibration')}</NavLink>
+                <NavLink to="/bulk">{t('nav_bulk')}</NavLink>
               </div>
             </nav>
 

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import api from '../api/client';
 import type { CalibrationResult } from '../api/types';
-import { TASK_TYPE_LABELS } from '../api/labels';
+import { useLang } from '../contexts/LangContext';
 
 export default function CalibrationPage({ teamId }: { teamId: string }) {
+  const { t, taskTypeLabel } = useLang();
   const [sprintFilter, setSprintFilter] = useState('');
   const [result, setResult] = useState<CalibrationResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -42,37 +43,36 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
 
   return (
     <div>
-      <h2>Kalibrasyon</h2>
+      <h2>{t('calib_title')}</h2>
       <p className="criterion-desc" style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
-        Sistemin tahminleri ile takımın onayladığı gerçek SP değerlerini karşılaştırır.
-        Belirli bir sprint girerek o sprinte ait işleri filtrele, ya da tümünü analiz et.
+        {t('calib_desc')}
       </p>
 
       <div className="panel" style={{ padding: '1rem', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
-        <strong>Nasıl çalışır?</strong>
+        <strong>{t('calib_how_title')}</strong>
         <ol style={{ margin: '0.5rem 0 0', paddingLeft: '1.2rem', lineHeight: 2 }}>
-          <li>Tahmin ekranında iş no + sprint bilgisiyle tahmin yap</li>
-          <li>Tahmin sonucunda <strong>Onayla</strong> butonuyla gerçek SP değerini kaydet</li>
-          <li>Buraya sprint adını girerek o sprintteki işlerin analizini gör</li>
-          <li>Sapma yüksekse ağırlık güncellemesi öneri gelir — onaylayınca uygulanır</li>
+          <li>{t('calib_step1')}</li>
+          <li>{t('calib_step2')}</li>
+          <li>{t('calib_step3')}</li>
+          <li>{t('calib_step4')}</li>
         </ol>
       </div>
 
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-        <label style={{ flex: 1, minWidth: '200px' }}>Sprint Filtresi
+        <label style={{ flex: 1, minWidth: '200px' }}>{t('calib_sprint_filter')}
           <input
             value={sprintFilter}
             onChange={e => setSprintFilter(e.target.value)}
-            placeholder="Sprint-42 (boş bırakırsan tümü)"
+            placeholder={t('calib_sprint_placeholder')}
             style={{ width: '100%' }}
           />
         </label>
         <button onClick={handleCalibrate} disabled={loading} className="primary" style={{ height: '38px', whiteSpace: 'nowrap' }}>
-          {loading ? 'Analiz ediliyor...' : 'Analiz Et'}
+          {loading ? t('calib_analyzing') : t('calib_analyze_btn')}
         </button>
       </div>
       <p className="criterion-desc" style={{ fontSize: '0.75rem', marginBottom: '1rem' }}>
-        Virgülle birden fazla sprint girebilirsin
+        {t('calib_multi_sprint_hint')}
       </p>
 
       {error && <div className="error">{error}</div>}
@@ -81,50 +81,46 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
         <div>
           {/* Özet */}
           <div className="result-card">
-            <h3>Sapma Analizi
+            <h3>{t('calib_drift_title')}
               <small style={{ fontWeight: 400, marginLeft: '8px', fontSize: '0.8rem' }} className="criterion-desc">
-                {estimations.length} onaylı tahmin
+                {estimations.length} {t('calib_estimations_count')}
               </small>
             </h3>
             {estimations.length === 0 ? (
-              <p className="criterion-desc">
-                Bu filtre için onaylanmış tahmin bulunamadı.
-                Tahmin ekranında sprint bilgisi girerek onaylama yapın.
-              </p>
+              <p className="criterion-desc">{t('calib_no_estimations')}</p>
             ) : (
               <>
                 <div className="drift-summary">
                   <div>
-                    <strong>Ortalama Sapma:</strong> %{(result.driftAnalysis.overallMeanError * 100).toFixed(1)}
+                    <strong>{t('calib_avg_error')}</strong> %{(result.driftAnalysis.overallMeanError * 100).toFixed(1)}
                   </div>
                   <div>
-                    <strong>Tahmin Yönü:</strong>{' '}
+                    <strong>{t('calib_direction')}</strong>{' '}
                     <span className={`badge-${result.driftAnalysis.overallDirection === 'balanced' ? 'ok' : 'warn'}`}>
-                      {result.driftAnalysis.overallDirection === 'over' ? 'Fazla tahmin ediliyor'
-                        : result.driftAnalysis.overallDirection === 'under' ? 'Eksik tahmin ediliyor'
-                        : 'Dengeli'}
+                      {result.driftAnalysis.overallDirection === 'over' ? t('calib_direction_over')
+                        : result.driftAnalysis.overallDirection === 'under' ? t('calib_direction_under')
+                        : t('calib_direction_balanced')}
                     </span>
                   </div>
                   <div>
-                    <strong>Kalibrasyon:</strong>{' '}
+                    <strong>{t('calib_calibration')}</strong>{' '}
                     {result.driftAnalysis.shouldCalibrate
-                      ? <span className="badge-warn">Ağırlık güncellemesi önerilir</span>
-                      : <span className="badge-ok">Gerekli değil</span>}
+                      ? <span className="badge-warn">{t('calib_needs_update')}</span>
+                      : <span className="badge-ok">{t('calib_no_need')}</span>}
                   </div>
                 </div>
 
-                {/* Sprint bazlı iş listesi */}
-                <h4 style={{ marginTop: '1.25rem' }}>İş Bazlı Karşılaştırma</h4>
+                <h4 style={{ marginTop: '1.25rem' }}>{t('calib_comparison_title')}</h4>
                 <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>İş No</th>
-                      <th>Sprint</th>
-                      <th>Görev Tipi</th>
-                      <th>Motor Önerisi</th>
-                      <th>Onaylanan SP</th>
-                      <th>Fark</th>
+                      <th>{t('calib_col_issue')}</th>
+                      <th>{t('calib_col_sprint')}</th>
+                      <th>{t('calib_col_task_type')}</th>
+                      <th>{t('calib_col_engine')}</th>
+                      <th>{t('calib_col_approved')}</th>
+                      <th>{t('calib_col_diff')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -134,7 +130,7 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
                         <tr key={e.estimationId}>
                           <td><strong>{e.sourceId}</strong></td>
                           <td className="criterion-desc" style={{ fontSize: '0.8rem' }}>{e.sprintId ?? '—'}</td>
-                          <td>{TASK_TYPE_LABELS[e.taskType] ?? e.taskType}</td>
+                          <td>{taskTypeLabel(e.taskType)}</td>
                           <td style={{ textAlign: 'center' }}>{e.suggestedSP}</td>
                           <td style={{ textAlign: 'center', fontWeight: 700 }}>{e.approvedSP}</td>
                           <td style={{ textAlign: 'center', fontWeight: 600 }} className={diff > 0 ? 'stat-value-amber' : diff < 0 ? 'stat-value-red' : 'stat-value-green'}>
@@ -147,22 +143,21 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
                 </table>
                 </div>
                 <div className="criterion-desc" style={{ fontSize: '0.75rem', marginTop: '0.5rem' }}>
-                  + = motor fazla tahmin etti &nbsp;·&nbsp; − = motor az tahmin etti &nbsp;·&nbsp; = = tam isabet
+                  {t('calib_legend')}
                 </div>
 
-                {/* Görev tipi bazlı */}
                 {Object.keys(result.driftAnalysis.byTaskType).length > 0 && (
                   <>
-                    <h4 style={{ marginTop: '1.25rem' }}>Görev Tipi Bazlı Sapma</h4>
+                    <h4 style={{ marginTop: '1.25rem' }}>{t('calib_by_task_type')}</h4>
                     <div className="table-wrap">
                     <table>
-                      <thead><tr><th>Görev Tipi</th><th>Sapma</th><th>Yön</th><th>Örnek</th></tr></thead>
+                      <thead><tr><th>{t('calib_col_task_type')}</th><th>{t('calib_col_deviation')}</th><th>{t('calib_col_direction')}</th><th>{t('calib_col_sample')}</th></tr></thead>
                       <tbody>
                         {Object.entries(result.driftAnalysis.byTaskType).map(([tt, d]) => (
                           <tr key={tt}>
-                            <td>{TASK_TYPE_LABELS[tt] ?? tt}</td>
+                            <td>{taskTypeLabel(tt)}</td>
                             <td>%{(d.meanError * 100).toFixed(1)}</td>
-                            <td>{d.direction === 'over' ? 'Fazla' : d.direction === 'under' ? 'Eksik' : 'Dengeli'}</td>
+                            <td>{d.direction === 'over' ? t('calib_dir_over') : d.direction === 'under' ? t('calib_dir_under') : t('calib_dir_balanced')}</td>
                             <td>{d.sampleCount}</td>
                           </tr>
                         ))}
@@ -175,17 +170,13 @@ export default function CalibrationPage({ teamId }: { teamId: string }) {
                 {result.driftAnalysis.shouldCalibrate && (
                   <div className="approve-section" style={{ marginTop: '1.25rem' }}>
                     {applied ? (
-                      <div className="approve-success">
-                        ✓ Ağırlıklar güncellendi. Bir sonraki tahminlerden itibaren geçerli olacak.
-                      </div>
+                      <div className="approve-success">{t('calib_applied')}</div>
                     ) : (
                       <>
                         <button onClick={handleApplyWeights} className="primary">
-                          Önerilen Ağırlıkları Uygula
+                          {t('calib_apply_weights')}
                         </button>
-                        <small className="criterion-desc">
-                          Mevcut ağırlıklar sapma yönüne göre ayarlanır, oranlar korunur.
-                        </small>
+                        <small className="criterion-desc">{t('calib_apply_hint')}</small>
                       </>
                     )}
                   </div>

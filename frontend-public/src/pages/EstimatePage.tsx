@@ -1,19 +1,18 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 import type { EstimateResponse, TaskType, CriteriaValue, BaselineStory } from '../api/types';
-import { criteriaLabel, criteriaDescription, TASK_TYPE_LABELS, TECHNIQUE_LABELS } from '../api/labels';
-import { getScaleLabel } from '../engine/scale-labels';
+import { useLang } from '../contexts/LangContext';
 import { BOOLEAN_CRITERIA } from '../engine/registry';
 import { TEMPLATES } from '../engine/templates';
 
-const COUNT_LIMITS: Record<string, { max: number; hint?: string }> = {
-  dependencyCount:    { max: 20, hint: 'maks 20' },
-  integrationPoints:  { max: 15, hint: 'maks 15' },
-  affectedModuleCount:{ max: 20, hint: 'maks 20' },
-  stakeholderCount:   { max: 15, hint: 'maks 15' },
-  testCaseCount:      { max: 100, hint: 'maks 100' },
-  screenCount:        { max: 20, hint: 'maks 20' },
-  teamMemberCount:    { max: 15, hint: 'maks 15' },
+const COUNT_LIMITS: Record<string, { max: number }> = {
+  dependencyCount:    { max: 20 },
+  integrationPoints:  { max: 15 },
+  affectedModuleCount:{ max: 20 },
+  stakeholderCount:   { max: 15 },
+  testCaseCount:      { max: 100 },
+  screenCount:        { max: 20 },
+  teamMemberCount:    { max: 15 },
 };
 
 function CountInput({ value, defaultValue, min, max, onChange, style }: {
@@ -62,9 +61,7 @@ function CountInput({ value, defaultValue, min, max, onChange, style }: {
   );
 }
 
-const TASK_TYPES: { value: TaskType; label: string }[] = (
-  ['USER_STORY', 'BUG', 'ANALYSIS', 'TEST_TASK', 'DESIGN', 'DEVOPS', 'SPIKE', 'SUB_TASK'] as TaskType[]
-).map(v => ({ value: v, label: TASK_TYPE_LABELS[v] }));
+const TASK_TYPE_KEYS: TaskType[] = ['USER_STORY', 'BUG', 'ANALYSIS', 'TEST_TASK', 'DESIGN', 'DEVOPS', 'SPIKE', 'SUB_TASK'];
 
 
 const CRITERIA_BY_TASK_TYPE: Record<string, { key: string; type: 'scale5' | 'count' | 'boolean' }[]> = {
@@ -194,12 +191,15 @@ function fibStepsBetween(a: number, b: number): number {
   return Math.abs(ia - ib);
 }
 
-function BaselineRefs({ baselines, taskType, suggestedSP, currentCriteria, teamId }: {
+function BaselineRefs({ baselines, taskType, suggestedSP, currentCriteria, teamId, t, criteriaLabel, scaleLabel }: {
   baselines: BaselineStory[];
   taskType: string;
   suggestedSP: number | string;
   currentCriteria: Record<string, CriteriaValue>;
   teamId: string;
+  t: (key: string) => string;
+  criteriaLabel: (key: string) => string;
+  scaleLabel: (key: string, value: number) => string;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [applyingId, setApplyingId] = useState<string | null>(null);
@@ -220,7 +220,7 @@ function BaselineRefs({ baselines, taskType, suggestedSP, currentCriteria, teamI
         const isOpen = openId === ref.id;
         const diff = typeof suggestedSP === 'number' ? suggestedSP - ref.storyPoints : null;
         const diffClass = diff === null ? 'stat-value-muted' : diff > 0 ? 'stat-value-amber' : diff < 0 ? 'stat-value-red' : 'stat-value-green';
-        const diffLabel = diff === null ? '' : diff > 0 ? `+${diff} fazla tahmin` : diff < 0 ? `${diff} eksik tahmin` : 'Tam isabet';
+        const diffLabel = diff === null ? '' : diff > 0 ? `+${diff} ${t('baseline_over')}` : diff < 0 ? `${diff} ${t('baseline_under')}` : t('baseline_exact');
 
         const similarity = snap ? computeSimilarity(currentCriteria, snap) : 0;
         const simPct = Math.round(similarity * 100);
@@ -234,14 +234,14 @@ function BaselineRefs({ baselines, taskType, suggestedSP, currentCriteria, teamI
 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2px' }}>
-                  <span className="baseline-tag baseline-tag-accent">Baz İş {!ref.taskType && '· Genel'}</span>
+                  <span className="baseline-tag baseline-tag-accent">{t('baseline_tag')} {!ref.taskType && `· ${t('baseline_general_tag')}`}</span>
                   {snap && (
                     <span className={`baseline-tag ${similarity >= 0.65 ? 'baseline-tag-match' : 'baseline-tag-muted'}`}>
-                      %{simPct} benzer
+                      %{simPct} {t('baseline_similar')}
                     </span>
                   )}
                   {showCalibrationHint && (
-                    <span className="baseline-tag baseline-tag-warn">kalibrasyon önerisi</span>
+                    <span className="baseline-tag baseline-tag-warn">{t('baseline_calib_hint')}</span>
                   )}
                 </div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
@@ -251,12 +251,12 @@ function BaselineRefs({ baselines, taskType, suggestedSP, currentCriteria, teamI
               </div>
 
               <div className="baseline-sp-compare">
-                <div style={{ fontSize: '0.7rem' }} className="criterion-desc">motor önerisi</div>
+                <div style={{ fontSize: '0.7rem' }} className="criterion-desc">{t('baseline_engine_est')}</div>
                 <div style={{ fontSize: '1rem', fontWeight: 700 }} className="stat-value-accent">{suggestedSP} SP</div>
                 {diff !== null && diff !== 0 && (
                   <div style={{ fontSize: '0.7rem', fontWeight: 600 }} className={diffClass}>{diffLabel}</div>
                 )}
-                {diff === 0 && <div style={{ fontSize: '0.7rem' }} className="stat-value-green">Tam isabet ✓</div>}
+                {diff === 0 && <div style={{ fontSize: '0.7rem' }} className="stat-value-green">{t('baseline_exact')}</div>}
               </div>
 
               <span style={{ fontSize: '0.8rem' }} className="criterion-desc">{isOpen ? '▲' : '▼'}</span>
@@ -270,12 +270,12 @@ function BaselineRefs({ baselines, taskType, suggestedSP, currentCriteria, teamI
                 {snapEntries.length > 0 ? (
                   <>
                     <div style={{ fontSize: '0.72rem', marginBottom: '0.4rem' }} className="section-label-muted">
-                      BAZ İŞ KRİTER DEĞERLERİ
+                      {t('baseline_criteria_header')}
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: boolEntries.length > 0 ? '0.5rem' : 0 }}>
                       {snapEntries.map(([key, val]) => {
                         const label = val.type === 'scale5'
-                          ? getScaleLabel(key, val.value as number).split(' — ')[0]
+                          ? scaleLabel(key, val.value as number).split(' — ')[0]
                           : String(val.value);
                         return (
                           <div key={key} className="criteria-chip">
@@ -294,24 +294,20 @@ function BaselineRefs({ baselines, taskType, suggestedSP, currentCriteria, teamI
                     )}
                   </>
                 ) : (
-                  <div style={{ fontSize: '0.78rem' }} className="criterion-desc">Bu baz iş için kriter değeri kaydedilmemiş.</div>
+                  <div style={{ fontSize: '0.78rem' }} className="criterion-desc">{t('baseline_no_criteria')}</div>
                 )}
                 {showCalibrationHint && (
                   <div className="calib-hint-box">
                     <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.4rem' }} className="stat-value-amber">
-                      Kalibrasyon Önerisi
+                      {t('baseline_calib_title')}
                     </div>
                     <div style={{ fontSize: '0.78rem', marginBottom: '0.75rem', lineHeight: 1.6 }} className="criterion-desc">
-                      Girdiğin değerler baz işe <strong style={{ color: 'var(--text-primary)' }}>%{simPct}</strong> oranında benziyor.
-                      Motor <strong style={{ color: 'var(--accent-text)' }}>{suggestedSP} SP</strong> önerdi
-                      ama baz işin <strong style={{ color: 'var(--text-primary)' }}>{ref.storyPoints} SP</strong>.
-                      {diff! > 0
-                        ? ' Motorun benzer işleri fazla tahmin ettiğine işaret ediyor.'
-                        : ' Motorun benzer işleri eksik tahmin ettiğine işaret ediyor.'}
+                      {t('baseline_calib_body').replace('{pct}', String(simPct)).replace('{engine}', String(suggestedSP)).replace('{defined}', String(ref.storyPoints))}
+                      {diff! > 0 ? t('baseline_calib_over') : t('baseline_calib_under')}
                     </div>
                     {appliedId === ref.id ? (
                       <div className="calib-applied">
-                        ✓ Baz iş kalibrasyon verisi olarak eklendi. Kalibrasyon ekranından analiz et.
+                        {t('baseline_calib_applied')}
                       </div>
                     ) : (
                       <button
@@ -337,14 +333,14 @@ function BaselineRefs({ baselines, taskType, suggestedSP, currentCriteria, teamI
                           }
                         }}
                       >
-                        {applyingId === ref.id ? 'Kaydediliyor...' : 'Baz İşi Kalibrasyon Verisi Olarak Ekle'}
+                        {applyingId === ref.id ? t('saving') : t('baseline_calib_add')}
                       </button>
                     )}
                   </div>
                 )}
                 {!showCalibrationHint && diff !== null && diff !== 0 && snap && (
                   <div className="diff-note" style={{ borderLeftColor: diff > 0 ? 'var(--amber-border)' : 'var(--red-border)' }}>
-                    Benzerlik %{simPct} — {simPct < 65 ? 'kriterler yeterince benzer değil, kalibrasyon önerilmiyor.' : 'SP farkı küçük, kalibrasyon gerekmiyor.'}
+                    {t('baseline_similarity')} %{simPct} — {simPct < 65 ? t('baseline_not_similar') : t('baseline_small_diff')}
                   </div>
                 )}
               </div>
@@ -372,6 +368,7 @@ function saveDraft(data: object) {
 }
 
 export default function EstimatePage({ teamId, teamConfig }: { teamId: string; teamConfig: { sourceSystem?: string; activeTechnique?: string } | null }) {
+  const { t, criteriaLabel, criteriaDescription, taskTypeLabel, techniqueLabel, scaleLabel } = useLang();
   const draft = loadDraft();
 
   const [sourceSystem, setSourceSystem] = useState<'JIRA' | 'ADO'>(
@@ -479,7 +476,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
   }
 
   async function handleAnalyze() {
-    if (!pbiTitle.trim()) { setAnalyzeError('PBI başlığı gerekli'); return; }
+    if (!pbiTitle.trim()) { setAnalyzeError(t('estimate_pbi_error')); return; }
     setAnalyzing(true);
     setAnalyzeError('');
     try {
@@ -500,7 +497,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
   }
 
   async function handleEstimate() {
-    if (!canEstimate) { setError('En az 3 kriter doldurulmalı'); return; }
+    if (!canEstimate) { setError(t('estimate_error_min')); return; }
     setLoading(true);
     setError('');
     setResult(null);
@@ -522,7 +519,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
       setSessionHistory(prev => {
         const entry = {
           id: sessionCounter,
-          label: `#${sessionCounter} — ${sourceId.trim() || TASK_TYPE_LABELS[taskType] || taskType} — ${data.suggestedSP} SP`,
+          label: `#${sessionCounter} — ${sourceId.trim() || taskTypeLabel(taskType)} — ${data.suggestedSP} SP`,
           taskType,
           result: data,
         };
@@ -554,32 +551,32 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
 
   return (
     <div>
-      <h2>Tahmin Oluştur</h2>
+      <h2>{t('estimate_title')}</h2>
 
       {summary && summary.total > 0 && (
         <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
           <div className="stat-card">
-            <div className="stat-label">Toplam Tahmin</div>
+            <div className="stat-label">{t('estimate_total')}</div>
             <div className="stat-value">{summary.total}</div>
           </div>
           <div className="stat-card">
-            <div className="stat-label">Onaylanan</div>
+            <div className="stat-label">{t('estimate_approved')}</div>
             <div className="stat-value-green">{summary.approved}</div>
           </div>
           {summary.pending > 0 && (
             <div className="stat-card">
-              <div className="stat-label">Bekleyen Onay</div>
+              <div className="stat-label">{t('estimate_pending')}</div>
               <div className="stat-value-amber">{summary.pending}</div>
             </div>
           )}
           {summary.meanError !== null && (
             <div className="stat-card">
-              <div className="stat-label">Ort. Sapma</div>
+              <div className="stat-label">{t('estimate_avg_error')}</div>
               <div className={summary.meanError > 0.2 ? 'stat-value-amber' : 'stat-value-green'}>
                 %{(summary.meanError * 100).toFixed(0)}
                 {summary.direction && summary.direction !== 'balanced' && (
                   <span style={{ fontSize: '0.72rem', marginLeft: '4px' }} className="criterion-desc">
-                    ({summary.direction === 'over' ? 'fazla' : 'eksik'})
+                    ({summary.direction === 'over' ? t('estimate_over') : t('estimate_under')})
                   </span>
                 )}
               </div>
@@ -592,9 +589,9 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
       <div style={{ marginBottom: '0.5rem' }}>
         <button className="collapsible-btn" onClick={() => setShowAnalyzePanel(p => !p)}>
           <span style={{ fontSize: '0.65rem' }}>{showAnalyzePanel ? '▲' : '▼'}</span>
-          Metinden Otomatik Doldur
+          {t('estimate_autofill_btn')}
           {Object.keys(autoFilledKeys).length > 0 && (
-            <span className="collapsible-filled">· {Object.keys(autoFilledKeys).length} kriter dolduruldu</span>
+            <span className="collapsible-filled">· {Object.keys(autoFilledKeys).length} {t('estimate_autofill_filled')}</span>
           )}
         </button>
         {showAnalyzePanel && (
@@ -603,12 +600,12 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
               <input
                 value={pbiTitle}
                 onChange={e => setPbiTitle(e.target.value)}
-                placeholder="PBI başlığı (zorunlu)"
+                placeholder={t('estimate_pbi_title_placeholder')}
               />
               <textarea
                 value={pbiDesc}
                 onChange={e => setPbiDesc(e.target.value)}
-                placeholder="Açıklama / acceptance criteria (isteğe bağlı)"
+                placeholder={t('estimate_pbi_desc_placeholder')}
                 rows={2}
                 style={{ resize: 'vertical', padding: '0.5rem', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: '0.85rem' }}
               />
@@ -620,7 +617,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
               className="primary"
               style={{ flexShrink: 0, alignSelf: 'flex-start' }}
             >
-              {analyzing ? 'Analiz ediliyor...' : 'Analiz Et'}
+              {analyzing ? t('estimate_analyzing') : t('estimate_analyze')}
             </button>
           </div>
         )}
@@ -630,7 +627,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
       <div style={{ marginBottom: '0.75rem' }}>
         <button className="collapsible-btn" onClick={() => setShowSourcePanel(p => !p)}>
           <span style={{ fontSize: '0.65rem' }}>{showSourcePanel ? '▲' : '▼'}</span>
-          Kaynak Sistem / İş Kalemi / Sprint
+          {t('estimate_source_panel')}
           {(sourceId || sprintId) && (
             <span className="collapsible-filled">
               {[sourceId, sprintId].filter(Boolean).join(' · ')}
@@ -639,16 +636,16 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
         </button>
         {showSourcePanel && (
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.6rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <label style={{ flex: '0 0 130px' }}>Kaynak Sistem
+            <label style={{ flex: '0 0 130px' }}>{t('estimate_source_system')}
               <select value={sourceSystem} onChange={e => handleSourceSystemChange(e.target.value as 'JIRA' | 'ADO')}>
                 <option value="JIRA">JIRA</option>
                 <option value="ADO">Azure DevOps</option>
               </select>
             </label>
-            <label style={{ flex: 1, minWidth: '130px' }}>İş Kalemi No
+            <label style={{ flex: 1, minWidth: '130px' }}>{t('estimate_work_item')}
               <input value={sourceId} onChange={e => setSourceId(e.target.value)} placeholder="PROJ-123" />
             </label>
-            <label style={{ flex: 1, minWidth: '130px' }}>Sprint (isteğe bağlı)
+            <label style={{ flex: 1, minWidth: '130px' }}>{t('estimate_sprint_optional')}
               <input value={sprintId} onChange={e => setSprintId(e.target.value)} placeholder="Sprint-42" />
             </label>
           </div>
@@ -657,7 +654,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
 
       {/* Görev Tipi + Aksiyon butonları */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        <label style={{ flex: '1 1 180px', minWidth: 0 }}>Görev Tipi
+        <label style={{ flex: '1 1 180px', minWidth: 0 }}>{t('estimate_task_type')}
           <select value={taskType} onChange={e => {
             const newType = e.target.value as TaskType;
             const newKeys = new Set((CRITERIA_BY_TASK_TYPE[newType] ?? []).map(c => c.key));
@@ -672,25 +669,25 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
             setAutoFilledKeys(prev => Object.fromEntries(Object.entries(prev).filter(([k]) => newKeys.has(k))));
             setResult(null);
           }}>
-            {TASK_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {TASK_TYPE_KEYS.map(v => <option key={v} value={v}>{taskTypeLabel(v)}</option>)}
           </select>
         </label>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', paddingBottom: '2px', flexWrap: 'wrap' }}>
           <button onClick={handleEstimate} disabled={loading || !canEstimate} className="primary">
-            {loading ? 'Hesaplanıyor...' : 'Tahmin Et'}
+            {loading ? t('estimate_calculating') : t('estimate_btn')}
           </button>
-          <button onClick={handleReset}>Temizle</button>
+          <button onClick={handleReset}>{t('estimate_clear')}</button>
           <button onClick={() => setShowTemplates(!showTemplates)} className={showTemplates ? 'active' : ''}>
-            {showTemplates ? 'Kapat' : 'Şablonlar'}
+            {showTemplates ? t('close') : t('estimate_templates')}
           </button>
           {activeBaseline && (
             <span className={`active-baseline-chip ${baselineDirty ? 'dirty' : 'clean'}`}>
-              {baselineDirty ? '✎ Baz iş değiştirildi' : `Baz iş: ${activeBaseline.title} (${activeBaseline.storyPoints} SP)`}
+              {baselineDirty ? t('estimate_baseline_dirty') : `${t('estimate_baseline_active')} ${activeBaseline.title} (${activeBaseline.storyPoints} SP)`}
             </span>
           )}
           {!canEstimate && (
             <span style={{ fontSize: '0.78rem' }} className="criterion-desc">
-              En az 3 kriter doldur ({nonBooleanFilled}/3)
+              {t('estimate_min_criteria')} ({nonBooleanFilled}/3)
             </span>
           )}
         </div>
@@ -700,7 +697,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
         <div style={{ margin: '0 0 1rem' }}>
           {baselines.length > 0 && (
             <>
-              <div className="section-label-accent">Baz İşler</div>
+              <div className="section-label-accent">{t('estimate_baselines_section')}</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem', marginBottom: '1rem' }}>
                 {baselines.map(b => {
                   const snap = b.criteriaSnapshot as Record<string, CriteriaValue> | null;
@@ -712,7 +709,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                         <span style={{ fontWeight: 600, fontSize: '0.85rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title}</span>
                       </div>
                       <div style={{ fontSize: '0.72rem' }} className="stat-value-accent">
-                        {b.taskType ? (TASK_TYPE_LABELS[b.taskType] ?? b.taskType) : 'Genel'}
+                        {b.taskType ? taskTypeLabel(b.taskType) : t('general')}
                         {criteriaCount > 0 && <span style={{ marginLeft: '6px' }} className="criterion-desc">{criteriaCount} kriter</span>}
                       </div>
                       {b.description && (
@@ -727,13 +724,13 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
             </>
           )}
 
-          <div className="section-label-muted">Sistem Şablonları</div>
+          <div className="section-label-muted">{t('estimate_system_templates')}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem' }}>
-            {TEMPLATES.map((t, i) => (
-              <button key={i} onClick={() => applyTemplate(t)} className="template-system-btn">
-                <div style={{ fontWeight: 600, marginBottom: '4px', fontSize: '0.85rem' }}>{t.name}</div>
-                <div style={{ fontSize: '0.72rem' }} className="criterion-desc">{t.description}</div>
-                <div style={{ fontSize: '0.7rem', marginTop: '4px' }} className="stat-value-muted">{TASK_TYPE_LABELS[t.taskType]}</div>
+            {TEMPLATES.map((tmpl, i) => (
+              <button key={i} onClick={() => applyTemplate(tmpl)} className="template-system-btn">
+                <div style={{ fontWeight: 600, marginBottom: '4px', fontSize: '0.85rem' }}>{tmpl.name}</div>
+                <div style={{ fontSize: '0.72rem' }} className="criterion-desc">{tmpl.description}</div>
+                <div style={{ fontSize: '0.7rem', marginTop: '4px' }} className="stat-value-muted">{taskTypeLabel(tmpl.taskType)}</div>
               </button>
             ))}
           </div>
@@ -741,8 +738,8 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
       )}
 
       <h3>
-        Kriterler{' '}
-        <small style={{ fontWeight: 400 }} className="criterion-desc">({filledCount}/{totalCount} dolduruldu)</small>
+        {t('estimate_criteria_title')}{' '}
+        <small style={{ fontWeight: 400 }} className="criterion-desc">({filledCount}/{totalCount} {t('estimate_criteria_filled')})</small>
         {filledCount > 0 && totalCount > 0 && (
           <span className="progress-track">
             <span className="progress-fill" style={{ width: `${(filledCount / totalCount) * 100}%` }} />
@@ -777,9 +774,6 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                 </div>
                 <div className="criterion-desc" style={{ fontSize: '0.67rem', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {criteriaDescription(c.key)}
-                  {c.type === 'count' && COUNT_LIMITS[c.key]?.hint && (
-                    <span style={{ marginLeft: '4px' }}>· {COUNT_LIMITS[c.key]!.hint}</span>
-                  )}
                 </div>
               </div>
 
@@ -791,7 +785,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                       key={v}
                       className={`scale-btn${active ? ' scale-btn-active' : ''}`}
                       onClick={() => setCriterion(c.key, 'scale5', selectedVal === v ? '' : String(v))}
-                      title={getScaleLabel(c.key, v)}
+                      title={scaleLabel(c.key, v)}
                       style={{
                         width: '28px', height: '28px', borderRadius: '50%',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -826,7 +820,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                       onChange={e => setCriterion(c.key, 'boolean', e.target.checked)}
                     />
                     <span style={{ fontSize: '0.78rem', minWidth: '36px' }} className="criterion-desc">
-                      {(selectedVal as boolean) ? 'Evet' : 'Hayır'}
+                      {(selectedVal as boolean) ? t('yes') : t('no')}
                     </span>
                   </label>
                 )}
@@ -838,29 +832,29 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
 
       {error && <div className="error">{error}</div>}
 
-      {result && <BaselineRefs baselines={baselines} taskType={result.taskType} suggestedSP={result.suggestedSP} currentCriteria={criteria} teamId={teamId} />}
+      {result && <BaselineRefs baselines={baselines} taskType={result.taskType} suggestedSP={result.suggestedSP} currentCriteria={criteria} teamId={teamId} t={t} criteriaLabel={criteriaLabel} scaleLabel={scaleLabel} />}
 
       {result && (
         <div className="result-card">
           <div className="result-header">
             <div className="sp-badge">{result.suggestedSP}</div>
             <div className="result-meta">
-              <div><strong>Önerilen Story Point:</strong> {result.suggestedSP}</div>
-              <div><strong>Teknik:</strong> {TECHNIQUE_LABELS[result.technique] ?? result.technique}</div>
+              <div><strong>{t('estimate_suggested_sp')}</strong> {result.suggestedSP}</div>
+              <div><strong>{t('estimate_technique')}</strong> {techniqueLabel(result.technique)}</div>
               <div>
-                <strong>Güven Skoru:</strong>{' '}
+                <strong>{t('estimate_confidence')}</strong>{' '}
                 <span className={`${confidenceClass(result.confidenceScore)}`} style={{ fontWeight: 600 }}>
                   %{(result.confidenceScore * 100).toFixed(0)}
                 </span>
                 {result.confidenceScore < 0.5 && (
-                  <span className="stat-value-amber" style={{ fontSize: '0.8rem' }}> — Daha fazla kriter doldurun</span>
+                  <span className="stat-value-amber" style={{ fontSize: '0.8rem' }}>{t('estimate_fill_more')}</span>
                 )}
               </div>
               {result.confidenceLow != null && result.confidenceHigh != null && (
                 <div>
-                  <strong>Tahmin Aralığı:</strong> {result.confidenceLow} – {result.confidenceHigh} SP
+                  <strong>{t('estimate_range')}</strong> {result.confidenceLow} – {result.confidenceHigh} SP
                   <small className="criterion-desc" style={{ marginLeft: '6px' }}>
-                    (güven {result.confidenceScore >= 0.8 ? 'yüksek → ±1' : result.confidenceScore >= 0.5 ? 'orta → ±2' : 'düşük → ±3'} adım)
+                    ({result.confidenceScore >= 0.8 ? `${t('estimate_confidence_high')} → ±1` : result.confidenceScore >= 0.5 ? `${t('estimate_confidence_mid')} → ±2` : `${t('estimate_confidence_low')} → ±3`} {t('estimate_confidence_steps')})
                   </small>
                 </div>
               )}
@@ -871,12 +865,12 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
             <div className="confidence-fill" style={{ width: `${result.confidenceScore * 100}%` }} />
           </div>
           <div className="confidence-labels">
-            <span>Düşük</span><span>Orta</span><span>Yüksek</span>
+            <span>{t('estimate_confidence_low')}</span><span>{t('estimate_confidence_mid')}</span><span>{t('estimate_confidence_high')}</span>
           </div>
 
           {result.missingCriteria.length > 0 && (
             <div className="missing">
-              <strong>Eksik kriterler ({result.missingCriteria.length}):</strong>{' '}
+              <strong>{t('estimate_missing')} ({result.missingCriteria.length}):</strong>{' '}
               {result.missingCriteria.map(k => criteriaLabel(k)).join(', ')}
             </div>
           )}
@@ -903,11 +897,11 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
             return (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
-                  <h4 style={{ flex: 1, margin: 0 }}>Kriter Katkıları</h4>
+                  <h4 style={{ flex: 1, margin: 0 }}>{t('estimate_contributions')}</h4>
                   {topBaseline && (
                     <div style={{ display: 'flex', gap }}>
-                      <div style={{ width: colW, textAlign: 'right', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }} className="stat-value-accent">Tahmin</div>
-                      <div style={{ width: colW, textAlign: 'right', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }} className="criterion-desc">Baz</div>
+                      <div style={{ width: colW, textAlign: 'right', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }} className="stat-value-accent">{t('estimate_col_current')}</div>
+                      <div style={{ width: colW, textAlign: 'right', fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }} className="criterion-desc">{t('estimate_col_base')}</div>
                     </div>
                   )}
                 </div>
@@ -933,7 +927,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                     {boolRows.map(([key]) => (
                       <div key={key} style={{ display: 'grid', gridTemplateColumns: '150px 1fr', alignItems: 'center', gap: '8px', fontSize: '0.8rem' }}>
                         <div style={{ textAlign: 'right' }} className="criterion-desc">{criteriaLabel(key)}</div>
-                        <div style={{ fontSize: '0.75rem' }} className="stat-value-amber">✕ çarpan olarak uygulandı</div>
+                        <div style={{ fontSize: '0.75rem' }} className="stat-value-amber">{t('baseline_bool_multiplier')}</div>
                       </div>
                     ))}
                   </div>
@@ -968,34 +962,34 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
 
           <details className="explanation-panel">
             <summary>
-              Nasıl hesaplandı? — Ham skor: <strong style={{ color: 'var(--accent-text)' }}>{result.engines.ruleBased.rawScore.toFixed(2)}</strong> / 10.00
+              {t('estimate_how_calc')} — {t('estimate_raw_score')} <strong style={{ color: 'var(--accent-text)' }}>{result.engines.ruleBased.rawScore.toFixed(2)}</strong> / 10.00
               → <strong style={{ color: 'var(--accent-text)' }}>{result.suggestedSP} SP</strong>
             </summary>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem', lineHeight: 1.7 }}>
-              <div><strong style={{ color: 'var(--text-primary)' }}>1. Normalizasyon</strong><div>Her kriter 0–10 aralığına dönüştürülür. Ölçek kriterleri (1–5) iki ile çarpılır → 2–10. Sayısal kriterler logaritmik ölçeklenir (1→2, 3→4, 7→6, 15→8, 31→10).</div></div>
-              <div><strong style={{ color: 'var(--text-primary)' }}>2. Ters kriterler</strong><div>Takım Alan Bilgisi, Kök Neden Netliği ve Otomasyon Kolaylığı ters çevrilir (10 − değer). Yüksek değer "kolay" demektir, bu yüzden düşük katkı verir.</div></div>
-              <div><strong style={{ color: 'var(--text-primary)' }}>3. Ağırlıklı toplam</strong><div>Her kriterin normalize skoru, görev tipine özel ağırlığı ile çarpılır ve toplanır. Ağırlıklar toplamı %100'dür, yani ham skor 0–10 aralığında kalır.</div></div>
-              <div><strong style={{ color: 'var(--text-primary)' }}>4. Boolean çarpanlar</strong><div>Güvenlik kısıtı (×1.20), performans kısıtı (×1.15), kesinti gereksinimi (×1.25) gibi boolean kriterler toplam skoru çarpan olarak artırır. Benzer geçmiş varsa ×0.80 ile azaltır.</div></div>
-              <div><strong style={{ color: 'var(--text-primary)' }}>5. SP eşleme</strong><div>Ham skor, seçili tekniğin eşik tablosuna göre SP değerine dönüştürülür.
+              <div><strong style={{ color: 'var(--text-primary)' }}>{t('explain_1_title')}</strong><div>{t('explain_1_body')}</div></div>
+              <div><strong style={{ color: 'var(--text-primary)' }}>{t('explain_2_title')}</strong><div>{t('explain_2_body')}</div></div>
+              <div><strong style={{ color: 'var(--text-primary)' }}>{t('explain_3_title')}</strong><div>{t('explain_3_body')}</div></div>
+              <div><strong style={{ color: 'var(--text-primary)' }}>{t('explain_4_title')}</strong><div>{t('explain_4_body')}</div></div>
+              <div><strong style={{ color: 'var(--text-primary)' }}>{t('explain_5_title')}</strong><div>{t('explain_5_body')}
                 {result.technique === 'FIBONACCI' && <> Fibonacci: &lt;1.5→1, &lt;2.5→2, &lt;3.5→3, &lt;5.0→5, &lt;6.5→8, &lt;7.5→13, &lt;8.5→21, &lt;9.5→34, 9.5+→55</>}
-                {result.technique === 'TSHIRT' && <> Tişört: &lt;2.0→XS, &lt;3.5→S, &lt;5.0→M, &lt;7.0→L, &lt;8.5→XL, 8.5+→XXL</>}
-                {result.technique === 'POWERS_OF_TWO' && <> İkinin Kuvvetleri: &lt;2.0→1, &lt;3.5→2, &lt;5.5→4, &lt;7.5→8, &lt;9.0→16, 9.0+→32</>}
-                {result.technique === 'LINEAR' && <> Doğrusal: &lt;1.0→1, &lt;2.0→2, ... &lt;9.0→9, 9.0+→10</>}
+                {result.technique === 'TSHIRT' && <> T-Shirt: &lt;2.0→XS, &lt;3.5→S, &lt;5.0→M, &lt;7.0→L, &lt;8.5→XL, 8.5+→XXL</>}
+                {result.technique === 'POWERS_OF_TWO' && <> 2^n: &lt;2.0→1, &lt;3.5→2, &lt;5.5→4, &lt;7.5→8, &lt;9.0→16, 9.0+→32</>}
+                {result.technique === 'LINEAR' && <> Linear: &lt;1.0→1, &lt;2.0→2, ... &lt;9.0→9, 9.0+→10</>}
               </div></div>
-              <div><strong style={{ color: 'var(--text-primary)' }}>6. Güven skoru</strong><div>Doldurulan kriter oranı (%50 ağırlık) + kapsam netliği (%20) + benzer geçmiş (%15) ile hesaplanır. Güven düşükse tahmin aralığı genişler.</div></div>
+              <div><strong style={{ color: 'var(--text-primary)' }}>{t('explain_6_title')}</strong><div>{t('explain_6_body')}</div></div>
             </div>
           </details>
 
           {approveSuccess != null ? (
             <div className="approve-success">
-              ✓ Gerçek SP değeri <strong>{approveSuccess}</strong> olarak kaydedildi. Sistem bu veriyi ilerleyen kalibrasyon için kullanacak.
+              {t('estimate_approve_success').replace('{sp}', String(approveSuccess))}
             </div>
           ) : (
             <div style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
               <div style={{ marginBottom: '0.5rem' }}>
-                <strong>Onayla — Gerçek SP değeri neydi?</strong>
+                <strong>{t('estimate_approve_title')}</strong>
                 <span style={{ fontSize: '0.75rem', marginLeft: '0.75rem' }} className="criterion-desc">
-                  Seçiminiz sistemi eğitmek için kaydedilir, gelecek tahminler daha doğru olur.
+                  {t('estimate_approve_hint')}
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -1018,9 +1012,9 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
         const compareEntry = sessionHistory.find(h => h.id === compareId);
         return (
           <div style={{ marginTop: '2rem' }}>
-            <h3>Karşılaştır
+            <h3>{t('estimate_compare_title')}
               <small style={{ fontWeight: 400, marginLeft: '8px', fontSize: '0.8rem' }} className="criterion-desc">
-                Bu oturumdaki tahminlerden biriyle kıyasla
+                {t('estimate_compare_hint')}
               </small>
             </h3>
             <select
@@ -1028,7 +1022,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
               onChange={e => setCompareId(e.target.value ? Number(e.target.value) : null)}
               style={{ marginBottom: '0.75rem' }}
             >
-              <option value="">Karşılaştırılacak tahmini seç...</option>
+              <option value="">{t('estimate_compare_select')}</option>
               {sessionHistory.filter(h => h.id !== sessionHistory[0]?.id).map(h => (
                 <option key={h.id} value={h.id}>{h.label}</option>
               ))}
@@ -1044,7 +1038,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
               const allKeys = [...new Set([...Object.keys(cur.breakdown), ...Object.keys(prev.breakdown)])];
               function rawValLabel(_key: string, rv: { type: string; value: number | boolean } | undefined): string {
                 if (!rv) return '—';
-                if (rv.type === 'boolean') return rv.value ? 'Evet' : 'Hayır';
+                if (rv.type === 'boolean') return rv.value ? t('yes') : t('no');
                 return String(rv.value);
               }
 
@@ -1064,37 +1058,37 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                 <div className="result-card">
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem' }}>
                     <div className="compare-box">
-                      <div style={{ fontSize: '0.7rem', marginBottom: '4px' }} className="criterion-desc">Mevcut Tahmin</div>
+                      <div style={{ fontSize: '0.7rem', marginBottom: '4px' }} className="criterion-desc">{t('estimate_compare_current')}</div>
                       <div className="compare-sp">{cur.suggestedSP} SP</div>
-                      <div style={{ fontSize: '0.8rem' }} className="criterion-desc">Güven %{(cur.confidenceScore * 100).toFixed(0)}</div>
+                      <div style={{ fontSize: '0.8rem' }} className="criterion-desc">{t('estimate_confidence')} %{(cur.confidenceScore * 100).toFixed(0)}</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: '1.5rem' }} className={spDiff > 0 ? 'stat-value-red' : spDiff < 0 ? 'stat-value-green' : 'criterion-desc'}>
                         {spDiff > 0 ? '▲' : spDiff < 0 ? '▼' : '='} {Math.abs(spDiff)}
                       </div>
-                      <div style={{ fontSize: '0.7rem' }} className="criterion-desc">SP farkı</div>
+                      <div style={{ fontSize: '0.7rem' }} className="criterion-desc">{t('estimate_compare_sp_diff')}</div>
                     </div>
                     <div className="compare-box">
                       <div style={{ fontSize: '0.7rem', marginBottom: '4px' }} className="criterion-desc">{compareEntry.label}</div>
                       <div className="compare-sp">{prev.suggestedSP} SP</div>
-                      <div style={{ fontSize: '0.8rem' }} className="criterion-desc">Güven %{(prev.confidenceScore * 100).toFixed(0)}</div>
+                      <div style={{ fontSize: '0.8rem' }} className="criterion-desc">{t('estimate_confidence')} %{(prev.confidenceScore * 100).toFixed(0)}</div>
                     </div>
                   </div>
 
                   {diffs.length > 0 && (
                     <>
                       <h4 style={{ marginBottom: '0.5rem' }}>
-                        {spDiff > 0 ? 'Bu tahmin neden daha yüksek?' : spDiff < 0 ? 'Bu tahmin neden daha düşük?' : 'Kriter farkları'}
+                        {spDiff > 0 ? t('estimate_compare_higher') : spDiff < 0 ? t('estimate_compare_lower') : t('estimate_compare_diff_title')}
                       </h4>
                       <div className="table-wrap">
                         <table>
                           <thead>
                             <tr>
-                              <th>Kriter</th>
+                              <th>{t('estimate_compare_col_criterion')}</th>
                               <th style={{ width: '20px' }}></th>
-                              <th>Etki</th>
-                              <th style={{ textAlign: 'center', width: '64px', color: 'var(--accent-text)' }}>Şu An</th>
-                              <th style={{ textAlign: 'center', width: '64px' }}>Önceki</th>
+                              <th>{t('estimate_compare_col_impact')}</th>
+                              <th style={{ textAlign: 'center', width: '64px', color: 'var(--accent-text)' }}>{t('estimate_col_current')}</th>
+                              <th style={{ textAlign: 'center', width: '64px' }}>{t('estimate_col_prev')}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1125,7 +1119,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                         </table>
                       </div>
                       <div style={{ marginTop: '0.5rem', fontSize: '0.75rem' }} className="criterion-desc">
-                        Toplam skor farkı:{' '}
+                        {t('estimate_compare_score_diff')}{' '}
                         <strong className={scoreDiff > 0 ? 'stat-value-red' : 'stat-value-green'}>
                           {scoreDiff > 0 ? '+' : ''}{scoreDiff.toFixed(2)}
                         </strong>
@@ -1134,7 +1128,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                   )}
                   {diffs.length === 0 && (
                     <div style={{ fontSize: '0.85rem', textAlign: 'center' }} className="criterion-desc">
-                      Sayısal kriter farkı yok — fark boolean çarpanlardan veya farklı görev tipinden kaynaklanıyor olabilir.
+                      {t('estimate_compare_no_diff')}
                     </div>
                   )}
                 </div>

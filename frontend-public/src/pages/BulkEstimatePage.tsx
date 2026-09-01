@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../api/client';
-import { TASK_TYPE_LABELS } from '../api/labels';
+import { useLang } from '../contexts/LangContext';
 
 type TaskType = 'USER_STORY' | 'BUG' | 'ANALYSIS' | 'TEST_TASK' | 'DESIGN' | 'DEVOPS' | 'SPIKE' | 'SUB_TASK';
 
@@ -80,13 +80,13 @@ function downloadTemplate() {
   XLSX.writeFile(wb, 'spee_bulk_template.xlsx');
 }
 
-function downloadResults(results: BulkResult[]) {
+function downloadResults(results: BulkResult[], taskTypeLabelFn: (key: string) => string) {
   const rows = [
-    ['ID', 'Başlık', 'Görev Tipi', 'Önerilen SP', 'Güven (%)', 'Oto. Kriter', 'Hata'],
+    ['ID', 'Title', 'Task Type', 'Suggested SP', 'Confidence (%)', 'Auto Criteria', 'Error'],
     ...results.map(r => [
       r.sourceId,
       r.title,
-      TASK_TYPE_LABELS[r.taskType] ?? r.taskType,
+      taskTypeLabelFn(r.taskType),
       r.suggestedSP ?? '',
       r.confidenceScore != null ? Math.round(r.confidenceScore * 100) : '',
       r.autoFilledCount ?? 0,
@@ -96,8 +96,8 @@ function downloadResults(results: BulkResult[]) {
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
   ws['!cols'] = [{ wch: 20 }, { wch: 40 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 30 }];
-  XLSX.utils.book_append_sheet(wb, ws, 'Sonuçlar');
-  XLSX.writeFile(wb, 'spee_bulk_sonuclar.xlsx');
+  XLSX.utils.book_append_sheet(wb, ws, 'Results');
+  XLSX.writeFile(wb, 'spee_bulk_results.xlsx');
 }
 
 function confidenceClass(score: number): string {
@@ -113,6 +113,7 @@ function loadDraft() {
 }
 
 export default function BulkEstimatePage({ teamId }: { teamId: string }) {
+  const { t, taskTypeLabel } = useLang();
   const draft = loadDraft();
   const [rows, setRows] = useState<BulkRow[]>(draft?.rows ?? []);
   const [results, setResults] = useState<BulkResult[]>(draft?.results ?? []);
@@ -160,17 +161,17 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
           .filter(r => r.title.length > 0);
 
         if (parsed.length === 0) {
-          setError('Dosyada geçerli satır bulunamadı. "title" sütunu zorunlu.');
+          setError(t('bulk_error_empty'));
           return;
         }
         if (parsed.length > 50) {
-          setError('Maksimum 50 satır destekleniyor.');
+          setError(t('bulk_error_max'));
           return;
         }
         setRows(parsed);
         saveDraft({ rows: parsed, results: [], fileName: file.name });
       } catch {
-        setError('Dosya okunamadı. Lütfen geçerli bir .xlsx veya .csv dosyası yükleyin.');
+        setError(t('bulk_error_read'));
       }
     };
     reader.readAsBinaryString(file);
@@ -250,33 +251,29 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
 
   return (
     <div>
-      <h2>Toplu Tahmin</h2>
+      <h2>{t('bulk_title')}</h2>
       <p className="criterion-desc" style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-        Excel dosyasından PBI listesi yükle, her biri için metin analizi + tahmin çalıştır.
+        {t('bulk_desc')}
       </p>
 
-      {/* Adım 1: Dosya */}
+      {/* Step 1: File */}
       <div className="panel" style={{ padding: '1rem', marginBottom: '1rem' }}>
         <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.75rem' }}>
-          1. Excel Dosyası Yükle
+          {t('bulk_step1')}
         </div>
         <p className="criterion-desc" style={{ fontSize: '0.78rem', marginBottom: '0.75rem' }}>
-          Zorunlu: <code>başlık</code>
-          &nbsp; Opsiyonel: <code>açıklama</code>
-          <code style={{ marginLeft: '4px' }}>görev tipi</code>
-          <code style={{ marginLeft: '4px' }}>sprint</code>
-          <span style={{ marginLeft: '6px' }}>· sprint serbest metin (ör. Sprint-42) · Bilinmeyen görev tipleri Kullanıcı Hikayesi olarak işlenir · Maks. 50 satır</span>
+          {t('bulk_step1_hint')}
         </p>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => fileRef.current?.click()} className="primary">
-            Dosya Seç
+            {t('bulk_select_file')}
           </button>
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handleFile} />
           <button onClick={downloadTemplate}>
-            Şablon İndir
+            {t('bulk_download_template')}
           </button>
           {fileName && (
-            <span className="criterion-desc" style={{ fontSize: '0.8rem' }}>✓ {fileName} ({rows.length} satır)</span>
+            <span className="criterion-desc" style={{ fontSize: '0.8rem' }}>✓ {fileName} ({rows.length})</span>
           )}
         </div>
         {error && <div className="error" style={{ marginTop: '0.75rem' }}>{error}</div>}
@@ -286,16 +283,16 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
       {rows.length > 0 && !results.length && (
         <div className="panel" style={{ padding: '1rem', marginBottom: '1rem' }}>
           <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.75rem' }}>
-            2. Önizleme — {rows.length} PBI
+            {t('bulk_preview_title').replace('{count}', String(rows.length))}
           </div>
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Başlık</th>
-                  <th>Açıklama</th>
-                  <th>Görev Tipi</th>
-                  <th>Sprint</th>
+                  <th>{t('bulk_col_title')}</th>
+                  <th>{t('bulk_col_desc')}</th>
+                  <th>{t('bulk_col_task_type')}</th>
+                  <th>{t('bulk_col_sprint')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -307,8 +304,8 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
                     </td>
                     <td>
                       {r.taskType
-                        ? <span className="badge-accent">{TASK_TYPE_LABELS[r.taskType] ?? r.taskType}</span>
-                        : <span className="criterion-desc" style={{ fontSize: '0.8rem' }}>otomatik</span>}
+                        ? <span className="badge-accent">{taskTypeLabel(r.taskType)}</span>
+                        : <span className="criterion-desc" style={{ fontSize: '0.8rem' }}>{t('bulk_auto')}</span>}
                     </td>
                     <td className="criterion-desc" style={{ fontSize: '0.8rem' }}>{r.sprintId ?? '—'}</td>
                   </tr>
@@ -321,7 +318,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
             {processing ? (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '4px' }} className="criterion-desc">
-                  <span>Analiz ediliyor...</span>
+                  <span>{t('bulk_analyzing')}</span>
                   <span>{progress} / {rows.length}</span>
                 </div>
                 <div className="progress-track" style={{ width: '100%', height: '6px', display: 'block', marginLeft: 0 }}>
@@ -330,7 +327,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
               </div>
             ) : (
               <button onClick={handleProcess} className="primary">
-                Tahminleri Başlat
+                {t('bulk_start')}
               </button>
             )}
           </div>
@@ -342,10 +339,10 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
         <div className="panel" style={{ padding: '1rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-              Sonuçlar — {results.length} tahmin
+              {t('bulk_results_title').replace('{count}', String(results.length))}
             </div>
-            <button onClick={() => downloadResults(results)} style={{ fontSize: '0.8rem' }}>
-              Excel'e Aktar
+            <button onClick={() => downloadResults(results, taskTypeLabel)} style={{ fontSize: '0.8rem' }}>
+              {t('bulk_export')}
             </button>
           </div>
 
@@ -358,9 +355,9 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
               const avgConf = ok.length ? ok.reduce((s, r) => s + r.confidenceScore, 0) / ok.length : 0;
               return (
                 <>
-                  <div className="stat-card"><div className="stat-label">Toplam SP</div><div className="stat-value">{totalSP}</div></div>
-                  <div className="stat-card"><div className="stat-label">Ort. SP</div><div className="stat-value">{avgSP}</div></div>
-                  <div className="stat-card"><div className="stat-label">Ort. Güven</div><div className={confidenceClass(avgConf)}>%{Math.round(avgConf * 100)}</div></div>
+                  <div className="stat-card"><div className="stat-label">{t('bulk_total_sp')}</div><div className="stat-value">{totalSP}</div></div>
+                  <div className="stat-card"><div className="stat-label">{t('bulk_avg_sp')}</div><div className="stat-value">{avgSP}</div></div>
+                  <div className="stat-card"><div className="stat-label">{t('bulk_avg_conf')}</div><div className={confidenceClass(avgConf)}>%{Math.round(avgConf * 100)}</div></div>
                 </>
               );
             })()}
@@ -370,11 +367,11 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
             <table>
               <thead>
                 <tr>
-                  <th>Başlık</th>
-                  <th>Görev Tipi</th>
-                  <th style={{ textAlign: 'center' }}>SP</th>
-                  <th style={{ textAlign: 'center' }}>Güven</th>
-                  <th style={{ textAlign: 'center' }}>Kriter</th>
+                  <th>{t('bulk_col_title')}</th>
+                  <th>{t('bulk_col_task_type')}</th>
+                  <th style={{ textAlign: 'center' }}>{t('bulk_col_sp')}</th>
+                  <th style={{ textAlign: 'center' }}>{t('bulk_col_confidence')}</th>
+                  <th style={{ textAlign: 'center' }}>{t('bulk_col_criteria')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -386,10 +383,10 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
                         <><br /><small className="criterion-desc" style={{ fontWeight: 400 }}>{r.sourceId}</small></>
                       )}
                     </td>
-                    <td className="criterion-desc" style={{ fontSize: '0.8rem' }}>{TASK_TYPE_LABELS[r.taskType] ?? r.taskType}</td>
+                    <td className="criterion-desc" style={{ fontSize: '0.8rem' }}>{taskTypeLabel(r.taskType)}</td>
                     <td style={{ textAlign: 'center' }}>
                       {r.error
-                        ? <><span className="stat-value-red" style={{ fontSize: '0.78rem' }}>hata</span><br /><small className="stat-value-red" style={{ fontSize: '0.7rem', opacity: 0.8 }}>{r.error}</small></>
+                        ? <><span className="stat-value-red" style={{ fontSize: '0.78rem' }}>!</span><br /><small className="stat-value-red" style={{ fontSize: '0.7rem', opacity: 0.8 }}>{r.error}</small></>
                         : <strong className="stat-value-accent">{r.suggestedSP}</strong>}
                     </td>
                     <td style={{ textAlign: 'center' }}>
@@ -412,7 +409,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
 
           <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
             <button onClick={() => { setRows([]); setResults([]); setFileName(''); localStorage.removeItem(BULK_DRAFT_KEY); if (fileRef.current) fileRef.current.value = ''; }}>
-              Temizle
+              {t('estimate_clear')}
             </button>
           </div>
         </div>

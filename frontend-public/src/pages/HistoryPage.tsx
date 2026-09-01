@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import api from '../api/client';
 import type { HistoryItem, TaskType } from '../api/types';
-import { TASK_TYPE_LABELS } from '../api/labels';
+import { useLang } from '../contexts/LangContext';
 
 const TASK_TYPES: TaskType[] = ['USER_STORY', 'BUG', 'ANALYSIS', 'TEST_TASK', 'DESIGN', 'DEVOPS', 'SPIKE', 'SUB_TASK'];
 const PAGE_SIZE = 20;
@@ -9,6 +9,7 @@ const PAGE_SIZE = 20;
 type Item = HistoryItem & { sprintId?: string | null };
 
 export default function HistoryPage({ teamId }: { teamId: string }) {
+  const { t, taskTypeLabel } = useLang();
   const [items, setItems] = useState<Item[]>([]);
   const [total, setTotal] = useState(0);
   const [filterType, setFilterType] = useState<string>('');
@@ -117,7 +118,7 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
   }
 
   async function handleDelete(estimationId: string, sourceId: string) {
-    if (!confirm(`"${sourceId}" tahminini silmek istediğine emin misin?`)) return;
+    if (!confirm(t('history_delete_confirm').replace('{id}', sourceId))) return;
     setDeletingId(estimationId);
     try {
       await api.delete(`/history/${teamId}/${estimationId}`, { data: {} });
@@ -135,16 +136,16 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
 
   return (
     <div>
-      <h2>Tahmin Geçmişi</h2>
+      <h2>{t('history_title')}</h2>
 
       <div className="form-row" style={{ alignItems: 'flex-end' }}>
-        <label>Görev Tipi
+        <label>{t('history_task_type')}
           <select value={filterType} onChange={e => { setFilterType(e.target.value); }}>
-            <option value="">Tümü</option>
-            {TASK_TYPES.map(t => <option key={t} value={t}>{TASK_TYPE_LABELS[t]}</option>)}
+            <option value="">{t('all')}</option>
+            {TASK_TYPES.map(tt => <option key={tt} value={tt}>{taskTypeLabel(tt)}</option>)}
           </select>
         </label>
-        <label>Sprint
+        <label>{t('history_sprint')}
           <input
             value={filterSprint}
             onChange={e => setFilterSprint(e.target.value)}
@@ -152,17 +153,17 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
             onKeyDown={e => e.key === 'Enter' && applyFilter()}
           />
         </label>
-        <button onClick={applyFilter} className="primary">Filtrele</button>
+        <button onClick={applyFilter} className="primary">{t('history_filter')}</button>
         {(filterType || filterSprint) && (
-          <button onClick={clearFilter}>Temizle</button>
+          <button onClick={clearFilter}>{t('history_clear')}</button>
         )}
       </div>
 
-      {loading ? <p>Yükleniyor...</p> : (
+      {loading ? <p>{t('loading')}</p> : (
         <>
           {total > 0 && (
             <div style={{ fontSize: '0.78rem', marginBottom: '0.5rem' }} className="criterion-desc">
-              {items.length} / {total} kayıt gösteriliyor
+              {items.length} / {total} {t('history_showing')}
             </div>
           )}
           {filterSprint && items.length > 0 && (() => {
@@ -174,26 +175,26 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
               ? Math.round(completedCount / (completedCount + notCompletedCount) * 100) : null;
             return (
               <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-                <div className="stat-card"><div className="stat-label">Planlanan SP</div><div className="stat-value">{sprintStat?.plannedSP ?? '—'}</div></div>
-                <div className="stat-card"><div className="stat-label">Tamamlanan SP</div><div className="stat-value-green">{sprintStat?.completedSP ?? '—'}</div></div>
-                <div className="stat-card"><div className="stat-label">Tamamlanamayan SP</div><div className="stat-value-red">{sprintStat?.notCompletedSP ?? '—'}</div></div>
+                <div className="stat-card"><div className="stat-label">{t('history_planned_sp')}</div><div className="stat-value">{sprintStat?.plannedSP ?? '—'}</div></div>
+                <div className="stat-card"><div className="stat-label">{t('history_completed_sp')}</div><div className="stat-value-green">{sprintStat?.completedSP ?? '—'}</div></div>
+                <div className="stat-card"><div className="stat-label">{t('history_not_completed_sp')}</div><div className="stat-value-red">{sprintStat?.notCompletedSP ?? '—'}</div></div>
                 {completionRate !== null && (
                   <div className="stat-card">
-                    <div className="stat-label">Tamamlanma</div>
+                    <div className="stat-label">{t('history_completion')}</div>
                     <div className={completionRate >= 70 ? 'stat-value-green' : completionRate >= 40 ? 'stat-value-amber' : 'stat-value-red'}>
                       %{completionRate}
                     </div>
                   </div>
                 )}
-                <div className="stat-card"><div className="stat-label">Belirsiz PBI</div><div className="stat-value-muted">{unmarkedCount}</div></div>
+                <div className="stat-card"><div className="stat-label">{t('history_unmarked')}</div><div className="stat-value-muted">{unmarkedCount}</div></div>
               </div>
             );
           })()}
           {!filterSprint && sprintStats && sprintStats.sprints.length > 1 && (
             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-              <div className="stat-card"><div className="stat-label">Sprint Sayısı</div><div className="stat-value">{sprintStats.sprints.length}</div></div>
+              <div className="stat-card"><div className="stat-label">{t('history_sprint_count')}</div><div className="stat-value">{sprintStats.sprints.length}</div></div>
               {sprintStats.avgCompletedSP !== null && (
-                <div className="stat-card"><div className="stat-label">Ort. Velocity</div><div className="stat-value-accent">{sprintStats.avgCompletedSP} SP</div></div>
+                <div className="stat-card"><div className="stat-label">{t('history_avg_velocity')}</div><div className="stat-value-accent">{sprintStats.avgCompletedSP} SP</div></div>
               )}
             </div>
           )}
@@ -201,19 +202,19 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
           <table>
             <thead>
               <tr>
-                <th>Issue</th>
-                <th>Sprint</th>
-                <th>Görev Tipi</th>
-                <th>Önerilen SP</th>
-                <th>Onaylanan SP</th>
-                <th>Güven</th>
-                <th>Durum</th>
-                <th>Tarih</th>
+                <th>{t('history_col_issue')}</th>
+                <th>{t('history_col_sprint')}</th>
+                <th>{t('history_col_task_type')}</th>
+                <th>{t('history_col_suggested')}</th>
+                <th>{t('history_col_approved')}</th>
+                <th>{t('history_col_confidence')}</th>
+                <th>{t('history_col_status')}</th>
+                <th>{t('history_col_date')}</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {items.length === 0 && <tr><td colSpan={9} className="criterion-desc">Kayıt bulunamadı</td></tr>}
+              {items.length === 0 && <tr><td colSpan={9} className="criterion-desc">{t('history_no_records')}</td></tr>}
               {items.map(item => (
                 <tr key={item.estimationId}>
                   <td>
@@ -223,7 +224,7 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
                     )}
                   </td>
                   <td style={{ fontSize: '0.8rem' }} className="criterion-desc">{(item as any).sprintId ?? '–'}</td>
-                  <td>{TASK_TYPE_LABELS[item.taskType] ?? item.taskType}</td>
+                  <td>{taskTypeLabel(item.taskType)}</td>
                   <td className="sp">{item.suggestedSP}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
@@ -250,7 +251,7 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
                             className="btn-approve"
                             style={{ padding: '2px 8px', fontSize: '0.75rem', height: '28px' }}
                           >
-                            {approvingId === item.estimationId ? '...' : 'Onayla'}
+                            {approvingId === item.estimationId ? '...' : t('history_approve_btn')}
                           </button>
                         </>
                       )}
@@ -262,12 +263,12 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
                       <button
                         className={`completion-toggle${completionMap[item.estimationId] === true ? ' completion-toggle-done' : ''}`}
                         onClick={() => handleCompletion(item.estimationId, completionMap[item.estimationId] === true ? null : true)}
-                        title="Tamamlandı"
+                        title={t('history_completed_title')}
                       >✓</button>
                       <button
                         className={`completion-toggle${completionMap[item.estimationId] === false ? ' completion-toggle-fail' : ''}`}
                         onClick={() => handleCompletion(item.estimationId, completionMap[item.estimationId] === false ? null : false)}
-                        title="Tamamlanamadı"
+                        title={t('history_not_completed_title')}
                       >✕</button>
                     </div>
                   </td>
@@ -281,7 +282,7 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
                       className="btn-danger"
                       style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
                     >
-                      {deletingId === item.estimationId ? '...' : 'Sil'}
+                      {deletingId === item.estimationId ? '...' : t('history_delete_btn')}
                     </button>
                   </td>
                 </tr>
@@ -293,7 +294,7 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
           {hasMore && (
             <div style={{ textAlign: 'center', marginTop: '1rem' }}>
               <button onClick={() => loadHistory(offsetRef.current, false)} disabled={loadingMore}>
-                {loadingMore ? 'Yükleniyor...' : `Daha fazla yükle (${total - items.length} kaldı)`}
+                {loadingMore ? t('loading') : `${t('history_load_more')} (${total - items.length} ${t('history_remaining')})`}
               </button>
             </div>
           )}
