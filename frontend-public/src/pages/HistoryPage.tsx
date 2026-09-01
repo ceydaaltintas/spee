@@ -92,6 +92,9 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
     setCompletionMap(prev => ({ ...prev, [estimationId]: value }));
     try {
       await api.patch(`/history/${teamId}/${estimationId}/completion`, { completedInSprint: value });
+      api.get<{ sprints: any[]; avgCompletedSP: number | null }>(`/history/${teamId}/sprint-stats`)
+        .then(r => setSprintStats(r.data))
+        .catch(() => {});
     } catch {
       setCompletionMap(prev => ({ ...prev, [estimationId]: completionMap[estimationId] ?? null }));
     }
