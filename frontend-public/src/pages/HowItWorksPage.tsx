@@ -155,8 +155,6 @@ export default function HowItWorksPage() {
   const [selectedType, setSelectedType] = useState('USER_STORY');
 
   /* hero animate */
-  const [heroIn, setHeroIn] = useState(false);
-  useEffect(() => { setTimeout(() => setHeroIn(true), 80); }, []);
 
   /* SP calculation */
   const rawScore = (tc * 0.35 + (6 - sc) * 0.20 + tl * 0.20 + (6 - dk) * 0.25) / 5;
