@@ -229,34 +229,24 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
                     {item.approvedSP ? (
                       <span className="sp stat-value-green">{item.approvedSP}</span>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={editingSP[item.estimationId] ?? ''}
+                          onChange={e => setEditingSP(prev => ({ ...prev, [item.estimationId]: e.target.value.replace(/\D/g, '') }))}
+                          onKeyDown={e => e.key === 'Enter' && handleApprove(item.estimationId, editingSP[item.estimationId] ? undefined : item.suggestedSP)}
+                          placeholder={String(item.suggestedSP)}
+                          style={{ width: '48px', padding: '2px 6px', height: '28px', fontSize: '0.82rem', textAlign: 'center' }}
+                        />
                         <button
-                          onClick={() => handleApprove(item.estimationId, item.suggestedSP)}
+                          onClick={() => handleApprove(item.estimationId, editingSP[item.estimationId] ? undefined : item.suggestedSP)}
                           disabled={approvingId === item.estimationId}
                           className="btn-approve"
-                          style={{ padding: '2px 8px', fontSize: '0.75rem', height: '28px', whiteSpace: 'nowrap' }}
-                          title="Önerilen SP ile onayla"
+                          style={{ padding: '2px 8px', fontSize: '0.75rem', height: '28px' }}
                         >
-                          {approvingId === item.estimationId ? '...' : `✓ ${item.suggestedSP} SP`}
+                          {approvingId === item.estimationId ? '...' : 'Onayla'}
                         </button>
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={editingSP[item.estimationId] ?? ''}
-                            onChange={e => setEditingSP(prev => ({ ...prev, [item.estimationId]: e.target.value.replace(/\D/g, '') }))}
-                            onKeyDown={e => e.key === 'Enter' && handleApprove(item.estimationId)}
-                            placeholder="farklı SP"
-                            style={{ width: '64px', padding: '2px 6px', height: '24px', fontSize: '0.75rem', textAlign: 'center' }}
-                          />
-                          <button
-                            onClick={() => handleApprove(item.estimationId)}
-                            disabled={approvingId === item.estimationId || !editingSP[item.estimationId]}
-                            style={{ padding: '2px 6px', fontSize: '0.72rem', height: '24px' }}
-                          >
-                            Gir
-                          </button>
-                        </div>
                       </div>
                     )}
                   </td>
