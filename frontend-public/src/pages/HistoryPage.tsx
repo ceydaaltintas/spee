@@ -225,11 +225,11 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
                   <td style={{ fontSize: '0.8rem' }} className="criterion-desc">{(item as any).sprintId ?? '–'}</td>
                   <td>{TASK_TYPE_LABELS[item.taskType] ?? item.taskType}</td>
                   <td className="sp">{item.suggestedSP}</td>
-                  <td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
                     {item.approvedSP ? (
                       <span className="sp stat-value-green">{item.approvedSP}</span>
                     ) : (
-                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
                         <input
                           type="text"
                           inputMode="numeric"
@@ -237,7 +237,7 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
                           onChange={e => setEditingSP(prev => ({ ...prev, [item.estimationId]: e.target.value.replace(/\D/g, '') }))}
                           onKeyDown={e => e.key === 'Enter' && handleApprove(item.estimationId, editingSP[item.estimationId] ? undefined : item.suggestedSP)}
                           placeholder={String(item.suggestedSP)}
-                          style={{ width: '48px', padding: '2px 6px', height: '28px', fontSize: '0.82rem', textAlign: 'center' }}
+                          style={{ width: '44px', padding: '2px 6px', height: '28px', fontSize: '0.82rem', textAlign: 'center' }}
                         />
                         <button
                           onClick={() => handleApprove(item.estimationId, editingSP[item.estimationId] ? undefined : item.suggestedSP)}
