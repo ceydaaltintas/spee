@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import api from '../api/client';
 import type { TeamConfig, Technique } from '../api/types';
 import { useLang } from '../contexts/LangContext';
-import { TECHNIQUE_LABELS } from '../api/labels';
 import {
   ALL_CRITERIA_BY_TASK_TYPE, DEFAULT_WEIGHTS, BOOLEAN_KEYS, normalizeWeights,
 } from '../engine/defaults';
