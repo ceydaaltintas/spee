@@ -607,6 +607,7 @@ button.btn-danger:disabled { opacity: 0.4; }
 @media (max-width: 768px) {
   .criteria-grid { grid-template-columns: 1fr; }
   .criteria-list { grid-template-columns: 1fr; }
+  .criteria-list > * { grid-column: 1 !important; }
   .criteria-row.left-col { border-right-color: transparent !important; }
 }
 
