@@ -656,8 +656,8 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
       </div>
 
       {/* Görev Tipi + Aksiyon butonları */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', alignItems: 'flex-end' }}>
-        <label style={{ flex: '0 0 220px' }}>Görev Tipi
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <label style={{ flex: '1 1 180px', minWidth: 0 }}>Görev Tipi
           <select value={taskType} onChange={e => {
             const newType = e.target.value as TaskType;
             const newKeys = new Set((CRITERIA_BY_TASK_TYPE[newType] ?? []).map(c => c.key));
@@ -675,7 +675,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
             {TASK_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </label>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', paddingBottom: '2px' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', paddingBottom: '2px', flexWrap: 'wrap' }}>
           <button onClick={handleEstimate} disabled={loading || !canEstimate} className="primary">
             {loading ? 'Hesaplanıyor...' : 'Tahmin Et'}
           </button>
