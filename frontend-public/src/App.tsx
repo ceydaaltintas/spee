@@ -6,6 +6,7 @@ import TeamConfigPage from './pages/TeamConfigPage';
 import CalibrationPage from './pages/CalibrationPage';
 import StandalonePage from './pages/StandalonePage';
 import BulkEstimatePage from './pages/BulkEstimatePage';
+import LandingPage from './pages/LandingPage';
 import api from './api/client';
 import type { TeamConfig } from './api/types';
 import { LangProvider, useLang } from './contexts/LangContext';
@@ -143,6 +144,7 @@ function AppInner() {
     <BrowserRouter>
       <Routes>
         <Route path="/standalone" element={<StandalonePage />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="*" element={
           <div className="app">
 
@@ -327,7 +329,7 @@ function AppInner() {
             {/* ── Nav ── */}
             <nav>
               <div className="nav-inner">
-                <NavLink to="/" end>{t('nav_estimate')}</NavLink>
+                <NavLink to="/estimate" end>{t('nav_estimate')}</NavLink>
                 <NavLink to="/history">{t('nav_history')}</NavLink>
                 <NavLink to="/config">{t('nav_settings')}</NavLink>
                 <NavLink to="/calibration">{t('nav_calibration')}</NavLink>
@@ -342,7 +344,7 @@ function AppInner() {
                 </div>
               ) : (
                 <Routes>
-                  <Route path="/" element={<EstimatePage teamId={teamId} teamConfig={teamConfig} />} />
+                  <Route path="/estimate" element={<EstimatePage teamId={teamId} teamConfig={teamConfig} />} />
                   <Route path="/history" element={<HistoryPage teamId={teamId} />} />
                   <Route path="/config" element={<TeamConfigPage teamId={teamId} onConfigSaved={handleConfigSaved} />} />
                   <Route path="/calibration" element={<CalibrationPage teamId={teamId} />} />
