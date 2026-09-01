@@ -1,597 +1,519 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLang } from '../contexts/LangContext';
 
-/* ─── Types ─────────────────────────────────────────────────── */
-type TaskKey = 'USER_STORY' | 'BUG' | 'ANALYSIS' | 'DEVOPS' | 'SPIKE' | 'PERFORMANCE' | 'SECURITY' | 'DESIGN';
-
-interface CriterionDef {
-  key: string;
-  labelTR: string;
-  labelEN: string;
-  descTR: string;
-  descEN: string;
-  weight: number;
-  inverted?: boolean;
+/* ── Scroll reveal hook ─────────────────────────────────────── */
+function useReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold: 0.12 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return { ref, visible };
 }
 
-const TASK_TYPES: { key: TaskKey; icon: string; labelTR: string; labelEN: string; descTR: string; descEN: string }[] = [
-  { key: 'USER_STORY', icon: '📋', labelTR: 'User Story', labelEN: 'User Story', descTR: 'Yeni özellik geliştirme', descEN: 'New feature development' },
-  { key: 'BUG',        icon: '🐛', labelTR: 'Hata Düzeltme', labelEN: 'Bug Fix', descTR: 'Mevcut davranış hatası', descEN: 'Existing behaviour defect' },
-  { key: 'ANALYSIS',  icon: '🔍', labelTR: 'Analiz', labelEN: 'Analysis', descTR: 'Araştırma & dokümantasyon', descEN: 'Research & documentation' },
-  { key: 'DEVOPS',    icon: '⚙️', labelTR: 'DevOps', labelEN: 'DevOps', descTR: 'Altyapı & pipeline işleri', descEN: 'Infrastructure & pipeline' },
-  { key: 'SPIKE',     icon: '🧪', labelTR: 'Spike', labelEN: 'Spike', descTR: 'Teknik keşif & PoC', descEN: 'Technical exploration & PoC' },
-  { key: 'PERFORMANCE',icon:'🚀',labelTR: 'Performans', labelEN: 'Performance', descTR: 'Hız & ölçek optimizasyonu', descEN: 'Speed & scale optimisation' },
-  { key: 'SECURITY',  icon: '🔒', labelTR: 'Güvenlik', labelEN: 'Security', descTR: 'Güvenlik açığı & sertleştirme', descEN: 'Vulnerability & hardening' },
-  { key: 'DESIGN',    icon: '🎨', labelTR: 'Tasarım', labelEN: 'Design', descTR: 'UI/UX & araştırma', descEN: 'UI/UX & research' },
-];
-
-const CRITERIA_MAP: Record<TaskKey, CriterionDef[]> = {
-  USER_STORY: [
-    { key:'tc', labelTR:'Teknik Karmaşıklık', labelEN:'Technical Complexity',   descTR:'Mimari zorluk seviyesi',       descEN:'Architectural difficulty',    weight:0.35 },
-    { key:'sc', labelTR:'Kapsam Netliği',    labelEN:'Scope Clarity',           descTR:'Gereksinimlerin berraklığı',   descEN:'Requirements clarity',        weight:0.20, inverted:true },
-    { key:'dc', labelTR:'Bağımlılık Sayısı', labelEN:'Dependencies',            descTR:'Dış servis / modül sayısı',   descEN:'External services / modules', weight:0.15 },
-    { key:'tl', labelTR:'Test Yükü',         labelEN:'Test Load',               descTR:'Yazılacak test kapsamı',       descEN:'Test coverage scope',         weight:0.15 },
-    { key:'dk', labelTR:'Alan Bilgisi',      labelEN:'Domain Knowledge',        descTR:'Ekibin bu alandaki deneyimi', descEN:'Team experience in domain',   weight:0.15, inverted:true },
-  ],
-  BUG: [
-    { key:'rd', labelTR:'Tekrarlanabilirlik', labelEN:'Reproduction Difficulty', descTR:'Bug\'ı üretmenin zorluğu',    descEN:'How hard to reproduce',       weight:0.25 },
-    { key:'rc', labelTR:'Kök Neden Netliği', labelEN:'Root Cause Clarity',      descTR:'Nedenin bilinirliği',          descEN:'Clarity of root cause',       weight:0.30, inverted:true },
-    { key:'fi', labelTR:'Düzeltme Etkisi',   labelEN:'Fix Impact Scope',        descTR:'Kaç modülü etkiliyor',        descEN:'Modules affected',            weight:0.25 },
-    { key:'rr', labelTR:'Regresyon Riski',   labelEN:'Regression Risk',         descTR:'Yan etki ihtimali',            descEN:'Risk of side effects',        weight:0.20 },
-  ],
-  ANALYSIS: [
-    { key:'al', labelTR:'Belirsizlik',       labelEN:'Ambiguity Level',         descTR:'Sonucun ne kadar belirsiz',   descEN:'How unclear the outcome is',  weight:0.30 },
-    { key:'sc', labelTR:'Kapsam Netliği',    labelEN:'Scope Clarity',           descTR:'Analizin sınırları',           descEN:'Boundaries of the analysis',  weight:0.25, inverted:true },
-    { key:'da', labelTR:'Veri Erişimi',      labelEN:'Data Access Difficulty',  descTR:'Kaynağa ulaşma güçlüğü',     descEN:'Difficulty accessing sources',weight:0.20 },
-    { key:'of', labelTR:'Çıktı Resmiyeti',  labelEN:'Output Formality',        descTR:'Rapor / sunum gereksinimleri',descEN:'Report / presentation needs', weight:0.25 },
-  ],
-  DEVOPS: [
-    { key:'pr', labelTR:'Prod Riski',        labelEN:'Production Risk',         descTR:'Prod ortamına etkisi',         descEN:'Impact on production',        weight:0.30 },
-    { key:'rb', labelTR:'Geri Alma Karmaşıklığı',labelEN:'Rollback Complexity', descTR:'Rollback ne kadar zor',       descEN:'Complexity of rollback',      weight:0.25 },
-    { key:'ec', labelTR:'Ortam Karmaşıklığı',labelEN:'Env Complexity',          descTR:'Farklı ortam sayısı',          descEN:'Number of environments',      weight:0.25 },
-    { key:'ct', labelTR:'Koordinasyon',      labelEN:'Cross-team Coordination', descTR:'Kaç takım dahil',              descEN:'Teams involved',              weight:0.20 },
-  ],
-  SPIKE: [
-    { key:'tc', labelTR:'Teknik Belirsizlik',labelEN:'Technical Uncertainty',   descTR:'Çözümün ne kadar bilinmez',  descEN:'How unknown the solution is', weight:0.40 },
-    { key:'sc', labelTR:'Kapsam Netliği',    labelEN:'Scope Clarity',           descTR:'Araştırma sınırları',          descEN:'Research boundaries',         weight:0.35, inverted:true },
-    { key:'dk', labelTR:'Alan Bilgisi',      labelEN:'Domain Knowledge',        descTR:'Ekibin geçmiş deneyimi',      descEN:'Team\'s prior experience',    weight:0.25, inverted:true },
-  ],
-  PERFORMANCE: [
-    { key:'tc', labelTR:'Teknik Karmaşıklık',labelEN:'Technical Complexity',    descTR:'Optimizasyonun zorluğu',      descEN:'Optimisation difficulty',     weight:0.35 },
-    { key:'sc', labelTR:'Kapsam Netliği',    labelEN:'Scope Clarity',           descTR:'Hangi metrik hedefleniyor',   descEN:'Which metric is targeted',    weight:0.25, inverted:true },
-    { key:'pr', labelTR:'Prod Riski',        labelEN:'Production Risk',         descTR:'Canlıya etkisi',               descEN:'Impact on live system',       weight:0.25 },
-    { key:'tl', labelTR:'Test Yükü',         labelEN:'Test Load',               descTR:'Benchmark / profiling yükü',  descEN:'Benchmark / profiling load',  weight:0.15 },
-  ],
-  SECURITY: [
-    { key:'sv', labelTR:'Güvenlik Açığı Seviyesi',labelEN:'Vulnerability Severity',descTR:'CVSS / etki boyutu',       descEN:'CVSS / impact scope',         weight:0.40 },
-    { key:'fi', labelTR:'Düzeltme Etkisi',   labelEN:'Fix Impact Scope',        descTR:'Değiştirilecek yüzeyler',     descEN:'Surfaces to be changed',      weight:0.30 },
-    { key:'ct', labelTR:'Koordinasyon',      labelEN:'Coordination',            descTR:'Uyumluluk / hukuki gerekleri',descEN:'Compliance / legal needs',    weight:0.30 },
-  ],
-  DESIGN: [
-    { key:'al', labelTR:'Belirsizlik',       labelEN:'Ambiguity Level',         descTR:'Tasarım yönünün netliği',     descEN:'Clarity of design direction', weight:0.30 },
-    { key:'sc', labelTR:'Kapsam Netliği',    labelEN:'Scope Clarity',           descTR:'Kaç akış kapsanıyor',          descEN:'Number of flows covered',     weight:0.25, inverted:true },
-    { key:'sh', labelTR:'Paydaş Sayısı',     labelEN:'Stakeholder Count',       descTR:'Geri bildirim verecek kişi',  descEN:'People giving feedback',      weight:0.25 },
-    { key:'of', labelTR:'Çıktı Resmiyeti',  labelEN:'Output Formality',        descTR:'Prototype / handoff detayı',  descEN:'Prototype / handoff detail',  weight:0.20 },
-  ],
-};
-
-const FIBONACCI = [1, 2, 3, 5, 8, 13, 21];
-
-function scoreToFib(score: number): number {
-  if (score < 0.18) return 1;
-  if (score < 0.32) return 2;
-  if (score < 0.48) return 3;
-  if (score < 0.62) return 5;
-  if (score < 0.76) return 8;
-  if (score < 0.88) return 13;
-  return 21;
+/* ── Mini mock-browser wrapper ──────────────────────────────── */
+function MockBrowser({ url, children }: { url: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.10)' }}>
+      {/* Chrome bar */}
+      <div style={{ background: 'var(--bg-base)', borderBottom: '1px solid var(--border)', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 5 }}>
+          {['#E06060','#E8B462','#4CAF85'].map((c,i) => <div key={i} style={{ width: 9, height: 9, borderRadius: '50%', background: c }} />)}
+        </div>
+        <div style={{ flex: 1, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 5, padding: '3px 10px', fontSize: 11, color: 'var(--text-secondary)', textAlign: 'center', fontFamily: 'monospace' }}>
+          {url}
+        </div>
+      </div>
+      <div style={{ padding: '20px 20px' }}>{children}</div>
+    </div>
+  );
 }
 
-function calcScore(criteria: CriterionDef[], vals: Record<string, number>): number {
-  let total = 0, wSum = 0;
-  criteria.forEach(c => {
-    const v = vals[c.key] ?? 3;
-    const norm = c.inverted ? (6 - v) / 5 : (v - 1) / 4;
-    total += norm * c.weight;
-    wSum += c.weight;
-  });
-  return total / wSum;
+/* ── Feature list item ──────────────────────────────────────── */
+function FeatItem({ children }: { children: React.ReactNode }) {
+  return (
+    <li style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+      <span style={{ color: 'var(--green)', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>✓</span>
+      <span>{children}</span>
+    </li>
+  );
 }
 
-/* ─── Calibration round data ─────────────────────────────────── */
-const CAL_ROUNDS = [
-  { sprint: 1, estimated: 8,  actual: 13, accuracy: 38 },
-  { sprint: 2, estimated: 13, actual: 13, accuracy: 62 },
-  { sprint: 3, estimated: 5,  actual: 8,  accuracy: 74 },
-  { sprint: 4, estimated: 8,  actual: 8,  accuracy: 87 },
-  { sprint: 5, estimated: 5,  actual: 5,  accuracy: 95 },
-];
+/* ── Step card ──────────────────────────────────────────────── */
+function StepCard({ num, icon, title, desc, delay }: { num: string; icon: string; title: string; desc: string; delay: number }) {
+  const { ref, visible } = useReveal();
+  return (
+    <div ref={ref} style={{
+      background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 14,
+      padding: '28px 24px', position: 'relative', overflow: 'hidden',
+      opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(24px)',
+      transition: `opacity .6s ${delay}s, transform .6s ${delay}s`,
+    }}>
+      <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--accent-text)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: 24, height: 1, background: 'var(--accent)' }} />
+        {num}
+      </div>
+      <div style={{ fontSize: '1.5rem', marginBottom: 12 }}>{icon}</div>
+      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 7 }}>{title}</div>
+      <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{desc}</div>
+    </div>
+  );
+}
 
-/* ─── Component ──────────────────────────────────────────────── */
+/* ── Demo section layout ────────────────────────────────────── */
+function DemoSection({ reverse, label, title, desc, features, browser, delay = 0 }: {
+  reverse?: boolean; label: string; title: string; desc: string;
+  features: React.ReactNode[]; browser: React.ReactNode; delay?: number;
+}) {
+  const { ref, visible } = useReveal();
+  return (
+    <div ref={ref} style={{
+      display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: 40,
+      alignItems: 'start',
+      ...(reverse ? { direction: 'rtl' as const } : {}),
+      opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(32px)',
+      transition: `opacity .65s ${delay}s, transform .65s ${delay}s`,
+    }}>
+      <div style={{ direction: 'ltr' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: 'var(--accent-text)', marginBottom: 10 }}>{label}</div>
+        <h3 style={{ fontSize: 'clamp(20px, 2.5vw, 28px)', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 12, lineHeight: 1.15 }}>{title}</h3>
+        <p style={{ fontSize: 14.5, color: 'var(--text-secondary)', lineHeight: 1.75, marginBottom: 22, maxWidth: 420 }}>{desc}</p>
+        <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column' as const, gap: 9 }}>
+          {features.map((f, i) => <FeatItem key={i}>{f}</FeatItem>)}
+        </ul>
+      </div>
+      <div style={{ direction: 'ltr' }}>{browser}</div>
+    </div>
+  );
+}
+
+/* ── Scale selector (interactive, matches real SPEE UI feel) ── */
+function ScaleRow({ label, desc, value, onChange }: { label: string; desc: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+        <div>
+          <span style={{ fontWeight: 600, fontSize: 12.5 }}>{label}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)', marginLeft: 6 }}>{desc}</span>
+        </div>
+        <span style={{ fontWeight: 700, fontSize: 12, color: 'var(--accent-text)' }}>{value}/5</span>
+      </div>
+      <div style={{ display: 'flex', gap: 5 }}>
+        {[1,2,3,4,5].map(v => (
+          <button key={v} onClick={() => onChange(v)} style={{
+            flex: 1, height: 28, border: `1.5px solid ${v <= value ? 'var(--accent)' : 'var(--border)'}`,
+            borderRadius: 6, background: v <= value ? 'var(--accent)' : 'transparent',
+            color: v <= value ? '#fff' : 'var(--text-secondary)', fontSize: 11, fontWeight: 700,
+            cursor: 'pointer', transition: 'all .15s',
+          }}>{v}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Animated bar ───────────────────────────────────────────── */
+function AnimBar({ pct, color = 'var(--accent)', delay = 0, label, val }: { pct: number; color?: string; delay?: number; label: string; val: string }) {
+  const { ref, visible } = useReveal();
+  return (
+    <div ref={ref} style={{ marginBottom: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 3 }}>
+        <span>{label}</span><span style={{ fontWeight: 600 }}>{val}</span>
+      </div>
+      <div style={{ height: 7, background: 'var(--bg-base)', borderRadius: 4, overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', borderRadius: 4, background: color,
+          width: visible ? `${pct}%` : '0%',
+          transition: `width .8s cubic-bezier(.22,1,.36,1) ${delay}s`,
+        }} />
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Main page
+═══════════════════════════════════════════════════════════════ */
 export default function HowItWorksPage() {
   const navigate = useNavigate();
   const { lang, setLang } = useLang();
   const isTR = lang === 'tr';
 
-  const [step, setStep] = useState(0);
-  const [taskType, setTaskType] = useState<TaskKey>('USER_STORY');
-  const [vals, setVals] = useState<Record<string, number>>({});
-  const [revealed, setRevealed] = useState(false);
-  const [counting, setCounting] = useState(0);
-  const [calRound, setCalRound] = useState(0);
-  const [calAnimating, setCalAnimating] = useState(false);
-  const [stepVisible, setStepVisible] = useState(true);
-  const countRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /* criteria demo state */
+  const [tc, setTc] = useState(3);
+  const [sc, setSc] = useState(2);
+  const [tl, setTl] = useState(3);
+  const [dk, setDk] = useState(2);
+  const [selectedType, setSelectedType] = useState('USER_STORY');
 
-  const criteria = CRITERIA_MAP[taskType];
-  const score = calcScore(criteria, vals);
-  const sp = scoreToFib(score);
-  const confidence = Math.round(40 + score * 50 + (Object.keys(vals).length / criteria.length) * 10);
+  /* hero animate */
+  const [heroIn, setHeroIn] = useState(false);
+  useEffect(() => { setTimeout(() => setHeroIn(true), 80); }, []);
 
-  function getVal(key: string) { return vals[key] ?? 3; }
-  function setVal(key: string, v: number) { setVals(prev => ({ ...prev, [key]: v })); }
+  /* SP calculation */
+  const rawScore = (tc * 0.35 + (6 - sc) * 0.20 + tl * 0.20 + (6 - dk) * 0.25) / 5;
+  const spVal = rawScore < 0.25 ? 2 : rawScore < 0.4 ? 3 : rawScore < 0.55 ? 5 : rawScore < 0.7 ? 8 : rawScore < 0.85 ? 13 : 21;
+  const confidence = Math.round(55 + rawScore * 35);
 
-  function goStep(n: number) {
-    setStepVisible(false);
-    setTimeout(() => { setStep(n); setStepVisible(true); }, 220);
-    if (n === 2) { setRevealed(false); setCounting(0); }
-  }
-
-  // Count-up animation for SP
-  useEffect(() => {
-    if (step !== 2 || !revealed) return;
-    if (countRef.current) clearInterval(countRef.current);
-    let cur = 0;
-    countRef.current = setInterval(() => {
-      cur++;
-      setCounting(cur);
-      if (cur >= sp && countRef.current) { clearInterval(countRef.current); setCounting(sp); }
-    }, 60);
-    return () => { if (countRef.current) clearInterval(countRef.current); };
-  }, [revealed, sp, step]);
-
-  function handleReveal() {
-    setRevealed(true);
-    setCounting(0);
-  }
-
-  function handleCalibrate() {
-    if (calRound >= CAL_ROUNDS.length - 1 || calAnimating) return;
-    setCalAnimating(true);
-    setTimeout(() => { setCalRound(r => r + 1); setCalAnimating(false); }, 700);
-  }
-
-  const STEPS_TR = ['Görev Tipini Seç', 'Kriterleri Değerlendir', 'SP Önerisini Al', 'Kalibrasyonu Anla'];
-  const STEPS_EN = ['Select Task Type', 'Score the Criteria', 'Get SP Suggestion', 'Understand Calibration'];
-  const steps = isTR ? STEPS_TR : STEPS_EN;
-
-  const accentColor = 'var(--accent)';
+  const TASK_TYPES_DEMO = [
+    { key: 'USER_STORY', icon: '📋', labelTR: 'User Story',     labelEN: 'User Story' },
+    { key: 'BUG',        icon: '🐛', labelTR: 'Hata Düzeltme', labelEN: 'Bug Fix'    },
+    { key: 'ANALYSIS',  icon: '🔍', labelTR: 'Analiz',          labelEN: 'Analysis'   },
+    { key: 'DEVOPS',    icon: '⚙️', labelTR: 'DevOps',          labelEN: 'DevOps'     },
+    { key: 'SPIKE',     icon: '🧪', labelTR: 'Spike',           labelEN: 'Spike'      },
+    { key: 'PERFORMANCE',icon:'🚀', labelTR: 'Performans',      labelEN: 'Performance'},
+    { key: 'SECURITY',  icon: '🔒', labelTR: 'Güvenlik',        labelEN: 'Security'   },
+    { key: 'DESIGN',    icon: '🎨', labelTR: 'Tasarım',         labelEN: 'Design'     },
+  ];
 
   return (
     <>
       <style>{`
-        @keyframes hiw-slide-in {
-          from { opacity: 0; transform: translateX(28px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes hiw-fade-up {
-          from { opacity: 0; transform: translateY(16px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes hiw-bar-grow {
-          from { width: 0; }
-        }
-        @keyframes hiw-pop {
-          0%   { transform: scale(0.7); opacity: 0; }
-          60%  { transform: scale(1.12); }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes hiw-spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes hiw-shimmer {
-          0%   { opacity: 0.4; }
-          50%  { opacity: 1; }
-          100% { opacity: 0.4; }
-        }
-        .hiw-step-visible { animation: hiw-slide-in 0.25s cubic-bezier(.22,1,.36,1) both; }
-        .hiw-step-hidden  { opacity: 0; }
-
-        .hiw-task-card {
-          border: 2px solid var(--border);
-          border-radius: 12px;
-          padding: 0.75rem 1rem;
-          cursor: pointer;
-          display: flex; align-items: center; gap: 0.6rem;
-          transition: border-color 0.15s, background 0.15s, transform 0.15s, box-shadow 0.15s;
-          background: var(--bg-surface);
-          position: relative;
-        }
-        .hiw-task-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(79,70,229,0.12); }
-        .hiw-task-card.active {
-          border-color: var(--accent);
-          background: var(--accent);
-          box-shadow: 0 4px 18px rgba(79,70,229,0.3);
-          transform: translateY(-1px);
-        }
-        .hiw-task-card.active .hiw-card-label { color: #fff; }
-        .hiw-task-card.active .hiw-card-desc  { color: rgba(255,255,255,0.78); }
-        .hiw-task-card-check {
-          position: absolute; top: 6px; right: 8px;
-          width: 18px; height: 18px; border-radius: 50%;
-          background: rgba(255,255,255,0.25);
-          display: flex; align-items: center; justify-content: center;
-          font-size: 10px; color: #fff;
-        }
-
-        .hiw-dot-row { display: flex; gap: 6px; align-items: center; }
-        .hiw-dot {
-          width: 22px; height: 22px; border-radius: 50%;
-          border: 2px solid var(--border-strong);
-          cursor: pointer; transition: all 0.15s; flex-shrink: 0;
-          background: transparent;
-          display: flex; align-items: center; justify-content: center;
-        }
-        .hiw-dot.filled { background: var(--accent); border-color: var(--accent); }
-        .hiw-dot:hover  { border-color: var(--accent); transform: scale(1.15); }
-
-        .hiw-bar-wrap { background: var(--bg-base); border-radius: 6px; height: 8px; overflow: hidden; }
-        .hiw-bar      { height: 100%; border-radius: 6px; background: var(--accent); animation: hiw-bar-grow 0.6s cubic-bezier(.22,1,.36,1) both; }
-
-        .hiw-reveal-btn {
-          background: var(--accent); color: #fff; border: none;
-          border-radius: 10px; padding: 0.75rem 2rem;
-          font-weight: 700; font-size: 0.95rem; cursor: pointer;
-          transition: transform 0.15s, filter 0.15s;
-        }
-        .hiw-reveal-btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
-
-        .hiw-sp-bubble {
-          animation: hiw-pop 0.5s cubic-bezier(.22,1,.36,1) both;
-          font-size: 5rem; font-weight: 900; color: var(--accent);
-          line-height: 1; letter-spacing: -0.04em;
-        }
-
-        .hiw-nav-btn {
-          border: 1.5px solid var(--border-strong); border-radius: 10px;
-          padding: 0.6rem 1.4rem; font-weight: 700; cursor: pointer;
-          background: var(--bg-surface); color: var(--text-primary);
-          font-size: 0.88rem; transition: all 0.15s;
-        }
-        .hiw-nav-btn:hover { border-color: var(--accent); color: var(--accent-text); }
-        .hiw-nav-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-        .hiw-nav-btn.primary:hover { filter: brightness(1.08); }
-
-        .hiw-cal-row {
-          display: flex; align-items: center; gap: 0.75rem;
-          padding: 0.5rem 0.75rem; border-radius: 8px;
-          transition: background 0.3s;
-        }
-        .hiw-cal-row.active { background: var(--accent-dim); }
-
-        .hiw-acc-bar-wrap { flex: 1; height: 6px; background: var(--bg-base); border-radius: 4px; overflow: hidden; }
-        .hiw-acc-bar { height: 100%; border-radius: 4px; background: var(--green); transition: width 0.6s cubic-bezier(.22,1,.36,1); }
+        @keyframes hiw-fade-up { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        .hiw-fade-up-1 { animation: hiw-fade-up .6s cubic-bezier(.22,1,.36,1) .1s both; }
+        .hiw-fade-up-2 { animation: hiw-fade-up .6s cubic-bezier(.22,1,.36,1) .22s both; }
+        .hiw-fade-up-3 { animation: hiw-fade-up .6s cubic-bezier(.22,1,.36,1) .36s both; }
+        .hiw-fade-up-4 { animation: hiw-fade-up .6s cubic-bezier(.22,1,.36,1) .5s both; }
+        .hiw-full-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+        .hiw-task-pill { border: 1.5px solid var(--border); border-radius: 9px; padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 7px; background: var(--bg-surface); transition: all .15s; }
+        .hiw-task-pill:hover { border-color: var(--accent); }
+        .hiw-task-pill.sel { border-color: var(--accent); background: var(--accent); color: #fff; }
+        .hiw-cal-row { padding: 9px 12px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-size: 12px; transition: background .2s; }
+        .hiw-cal-row.cur { background: var(--accent-dim); }
       `}</style>
 
-      <div style={{ minHeight: '100vh', background: 'var(--bg-base)', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
 
-        {/* Top bar */}
-        <div style={{
+        {/* NAV */}
+        <nav style={{
+          position: 'sticky', top: 0, zIndex: 50,
+          background: 'var(--bg-header)', borderBottom: '1px solid var(--border)',
+          backdropFilter: 'blur(12px)',
+          padding: '0 2rem', height: 56,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '1rem 1.75rem',
-          borderBottom: '1px solid var(--border)',
-          background: 'var(--bg-header)',
-          position: 'sticky', top: 0, zIndex: 20,
         }}>
-          <button onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: 800, fontSize: '1rem', letterSpacing: '0.06em' }}>
-            <svg width="18" height="18" viewBox="0 0 48 46" fill="none">
-              <path fill={accentColor} d="M25.946 44.938c-.664.845-2.021.375-2.021-.698V33.937a2.26 2.26 0 0 0-2.262-2.262H10.287c-.92 0-1.456-1.04-.92-1.788l7.48-10.471c1.07-1.497 0-3.578-1.842-3.578H1.237c-.92 0-1.456-1.04-.92-1.788L10.013.474c.214-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.471c-1.07 1.498 0 3.579 1.842 3.579h11.377c.943 0 1.473 1.088.89 1.83L25.947 44.94z"/>
-            </svg>
+          <button onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: 800, fontSize: 15, letterSpacing: '0.06em' }}>
+            <svg width="16" height="16" viewBox="0 0 48 46" fill="none"><path fill="var(--accent)" d="M25.946 44.938c-.664.845-2.021.375-2.021-.698V33.937a2.26 2.26 0 0 0-2.262-2.262H10.287c-.92 0-1.456-1.04-.92-1.788l7.48-10.471c1.07-1.497 0-3.578-1.842-3.578H1.237c-.92 0-1.456-1.04-.92-1.788L10.013.474c.214-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.471c-1.07 1.498 0 3.579 1.842 3.579h11.377c.943 0 1.473 1.088.89 1.83L25.947 44.94z"/></svg>
             SPEE
           </button>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <button onClick={() => setLang(isTR ? 'en' : 'tr')} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', color: 'var(--text-primary)' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button onClick={() => setLang(isTR ? 'en' : 'tr')} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', color: 'var(--text-primary)' }}>
               {isTR ? 'EN' : 'TR'}
             </button>
-            <button onClick={() => navigate('/estimate')} style={{ background: accentColor, color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 16px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}>
+            <button onClick={() => navigate('/estimate')} style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 16px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}>
               {isTR ? 'Uygulamayı Aç →' : 'Open App →'}
+            </button>
+          </div>
+        </nav>
+
+        {/* HERO */}
+        <div style={{ textAlign: 'center', padding: '72px 2rem 56px', maxWidth: 680, margin: '0 auto' }}>
+          <div className="hiw-fade-up-1" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)', color: 'var(--accent-text)', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '4px 14px', borderRadius: 20, marginBottom: 24 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} />
+            {isTR ? 'Adım adım' : 'Step by step'}
+          </div>
+          <h1 className="hiw-fade-up-2" style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 18 }}>
+            {isTR ? <>SPEE <span style={{ color: 'var(--accent-text)' }}>nasıl çalışır?</span></> : <>How does <span style={{ color: 'var(--accent-text)' }}>SPEE work?</span></>}
+          </h1>
+          <p className="hiw-fade-up-3" style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.75, marginBottom: 32 }}>
+            {isTR
+              ? 'Görevi tanımla, kriterleri değerlendir, motoru çalıştır. Her sprintle daha isabetli hale gelen kalibre edilmiş bir tahmin sistemi.'
+              : 'Define the task, score the criteria, run the engine. A calibrated estimation system that gets more accurate with every sprint.'}
+          </p>
+          <div className="hiw-fade-up-4" style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <button onClick={() => navigate('/estimate')} style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 28px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+              {isTR ? 'Hemen Dene →' : 'Try It Now →'}
+            </button>
+            <button onClick={() => navigate('/')} style={{ background: 'transparent', border: '1.5px solid var(--border)', borderRadius: 10, padding: '11px 22px', fontWeight: 600, fontSize: 14, cursor: 'pointer', color: 'var(--text-primary)' }}>
+              {isTR ? '← Ana Sayfa' : '← Home'}
             </button>
           </div>
         </div>
 
-        {/* Step progress */}
-        <div style={{ padding: '1.5rem 1.75rem 0', maxWidth: 900, margin: '0 auto', width: '100%' }}>
-          <p style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', color: 'var(--accent-text)', marginBottom: '1rem', textTransform: 'uppercase' }}>
-            {isTR ? 'Nasıl Çalışır?' : 'How It Works'}
-          </p>
-          <div style={{ display: 'flex', gap: '0', position: 'relative' }}>
-            {steps.map((s, i) => (
-              <button
-                key={i}
-                onClick={() => goStep(i)}
-                style={{
-                  flex: 1, background: 'transparent', border: 'none', cursor: 'pointer',
-                  textAlign: 'center', padding: '0 0.25rem 0.75rem',
-                  borderBottom: `2.5px solid ${i === step ? 'var(--accent)' : i < step ? 'var(--green)' : 'var(--border)'}`,
-                  transition: 'border-color 0.25s',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-                  <div style={{
-                    width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '0.65rem', fontWeight: 800,
-                    background: i === step ? 'var(--accent)' : i < step ? 'var(--green)' : 'var(--border)',
-                    color: i <= step ? '#fff' : 'var(--text-secondary)',
-                    transition: 'background 0.25s',
-                  }}>
-                    {i < step ? '✓' : i + 1}
-                  </div>
-                </div>
-                <div style={{ fontSize: '0.72rem', fontWeight: i === step ? 700 : 500, color: i === step ? 'var(--text-primary)' : 'var(--text-secondary)', lineHeight: 1.3 }}>{s}</div>
-              </button>
+        <hr className="hiw-full-divider" />
+
+        {/* STEP CARDS */}
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '72px 2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+            {[
+              { num:'01', icon:'📋', titleTR:'Görevi Tanımla',       titleEN:'Define the Task',       descTR:'8 görev tipi, her biri kendine özgü kriter seti ile.',    descEN:'8 task types, each with its own criterion set.', delay:0 },
+              { num:'02', icon:'⚖️', titleTR:'Kriterleri Değerlendir',titleEN:'Score the Criteria',   descTR:'Her boyutu 1–5 arası puan. Motor ağırlıklı hesaplar.',   descEN:'Score each dimension 1–5. Engine calculates weighted.', delay:.1 },
+              { num:'03', icon:'⚡', titleTR:'SP Önerisini Al',       titleEN:'Get the SP Suggestion', descTR:'Deterministik motor anında Fibonacci değeri üretir.',     descEN:'Deterministic engine instantly produces Fibonacci value.', delay:.2 },
+              { num:'04', icon:'🎯', titleTR:'Kalibre Et',            titleEN:'Calibrate',             descTR:'Gerçek SP gir, motor bir sonraki tahmin için öğrenir.',  descEN:'Enter actual SP, engine learns for the next estimate.', delay:.3 },
+            ].map(s => (
+              <StepCard key={s.num} num={s.num} icon={s.icon}
+                title={isTR ? s.titleTR : s.titleEN}
+                desc={isTR ? s.descTR : s.descEN}
+                delay={s.delay} />
             ))}
           </div>
         </div>
 
-        {/* Main content */}
-        <div style={{ flex: 1, maxWidth: 900, margin: '0 auto', width: '100%', padding: '1.5rem 1.75rem 3rem' }}>
-          <div className={stepVisible ? 'hiw-step-visible' : 'hiw-step-hidden'} style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '2rem', alignItems: 'start' }}>
+        <hr className="hiw-full-divider" />
 
-            {/* ── Left panel ── */}
-            <div style={{ paddingTop: '0.5rem' }}>
-              <div style={{ fontSize: '4rem', fontWeight: 900, color: 'var(--border)', lineHeight: 1, marginBottom: '0.5rem', userSelect: 'none' }}>
-                0{step + 1}
-              </div>
-              {step === 0 && <>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>{isTR ? 'Önce görevi tanımla' : 'Start by defining the task'}</h2>
-                <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-                  {isTR
-                    ? 'SPEE 8 farklı görev tipi için ayrı kriter setleri kullanır. User Story\'nin kriterleri bir bug fix\'ten tamamen farklıdır — motor her tipte farklı boyutları değerlendirir.'
-                    : 'SPEE uses separate criterion sets for 8 task types. User Story criteria are completely different from a bug fix — the engine evaluates different dimensions for each type.'}
-                </p>
-                <div style={{ padding: '0.875rem 1rem', background: 'var(--bg-surface)', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                  💡 {isTR ? 'Sağdaki kartlardan bir görev tipi seç. Motor o tipe özel kriter setini yükleyecek.' : 'Select a task type from the cards on the right. The engine will load the criteria set for that type.'}
+        {/* ── SECTION 1: Task type ── */}
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '72px 2rem' }}>
+          <DemoSection
+            label={isTR ? 'Adım 01 — Görev Tipi' : 'Step 01 — Task Type'}
+            title={isTR ? 'Önce görevi doğru sınıflandır' : 'Start by classifying the task correctly'}
+            desc={isTR
+              ? 'Bir User Story, bir Bug fix ve bir DevOps görevi tamamen farklı boyutlarda değerlendirilir. SPEE her tip için ayrı bir kriter seti kullanır — yanlış sınıflandırmadan kaynaklanan hatalı tahminler ortadan kalkar.'
+              : 'A User Story, a Bug fix and a DevOps task are evaluated on completely different dimensions. SPEE uses a separate criterion set for each type — eliminating wrong estimates from misclassification.'}
+            features={isTR ? [
+              <><strong>8 farklı görev tipi</strong> — User Story, Bug, Analiz, DevOps, Spike, Performans, Güvenlik, Tasarım</>,
+              <><strong>Her tip için özel kriterler</strong> — örneğin Bug için "kök neden netliği", DevOps için "prod riski"</>,
+              <><strong>Tip değiştirince</strong> kriter paneli anında güncellenir, önceki puanlar sıfırlanır</>,
+            ] : [
+              <><strong>8 task types</strong> — User Story, Bug, Analysis, DevOps, Spike, Performance, Security, Design</>,
+              <><strong>Custom criteria per type</strong> — e.g. "root cause clarity" for Bug, "production risk" for DevOps</>,
+              <><strong>Changing the type</strong> instantly updates the criteria panel and resets previous scores</>,
+            ]}
+            browser={
+              <MockBrowser url="spee.app/estimate">
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 10 }}>
+                  {isTR ? 'Görev Tipi' : 'Task Type'}
                 </div>
-              </>}
-              {step === 1 && <>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>{isTR ? 'Her kriteri ekibinin gözünden değerlendir' : 'Score each criterion from your team\'s perspective'}</h2>
-                <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                  {isTR
-                    ? 'Her kriter 1-5 arası puanlanır. Puanlar ağırlıklı olarak birleştirilir. Deneyimli takımlar zamanla hangi kriterin ne ağırlık taşıdığını da kalibre eder.'
-                    : 'Each criterion is scored 1–5. Scores are combined with weights. Experienced teams also calibrate which criterion carries what weight over time.'}
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  {criteria.map(c => (
-                    <div key={c.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>{isTR ? c.labelTR : c.labelEN}</span>
-                      <span style={{ fontWeight: 700, color: 'var(--accent-text)' }}>×{Math.round(c.weight * 100)}%</span>
-                    </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {TASK_TYPES_DEMO.map(tt => (
+                    <button key={tt.key}
+                      className={`hiw-task-pill${selectedType === tt.key ? ' sel' : ''}`}
+                      onClick={() => setSelectedType(tt.key)}
+                    >
+                      <span style={{ fontSize: '1rem' }}>{tt.icon}</span>
+                      <span style={{ fontWeight: 600, fontSize: 12 }}>{isTR ? tt.labelTR : tt.labelEN}</span>
+                    </button>
                   ))}
                 </div>
-              </>}
-              {step === 2 && <>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>{isTR ? 'Kural tabanlı motor devreye giriyor' : 'The rule-based engine kicks in'}</h2>
-                <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                  {isTR
-                    ? 'Motor ağırlıklı ortalamayı Fibonacci skalasına dönüştürür. Makine öğrenmesi yok — deterministik, açıklanabilir, takım kalibrasyonuyla gelişen bir sistem.'
-                    : 'The engine maps the weighted average to the Fibonacci scale. No machine learning — deterministic, explainable, and improved by team calibration.'}
-                </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '1rem' }}>
-                  {FIBONACCI.map(f => (
-                    <div key={f} style={{
-                      padding: '0.3rem 0.65rem', borderRadius: '6px', fontWeight: 700, fontSize: '0.88rem',
-                      background: f === sp ? 'var(--accent)' : 'var(--bg-surface)',
-                      color: f === sp ? '#fff' : 'var(--text-secondary)',
-                      border: `1.5px solid ${f === sp ? 'var(--accent)' : 'var(--border)'}`,
-                      transition: 'all 0.3s',
-                    }}>{f}</div>
-                  ))}
+                <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--accent-dim)', borderRadius: 8, fontSize: 12, color: 'var(--accent-text)', fontWeight: 600 }}>
+                  ✓ {isTR ? `${selectedType === 'USER_STORY' ? 5 : selectedType === 'BUG' ? 4 : selectedType === 'DEVOPS' ? 4 : 3} kriter yüklendi` : `${selectedType === 'USER_STORY' ? 5 : selectedType === 'BUG' ? 4 : selectedType === 'DEVOPS' ? 4 : 3} criteria loaded`}
                 </div>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
-                  {isTR ? '↑ Motor bu skalada en uygun değeri önerir' : '↑ Engine suggests the most fitting value on this scale'}
-                </p>
-              </>}
-              {step === 3 && <>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>{isTR ? 'Her sprintle daha isabetli' : 'More accurate with every sprint'}</h2>
-                <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                  {isTR
-                    ? 'Tahmin onaylandıktan sonra gerçek SP girilir. Motor bu farktan öğrenir. Birkaç sprint içinde tahminler takımın gerçek hızına uyum sağlar.'
-                    : 'After an estimate is approved, the actual SP is entered. The engine learns from the difference. Within a few sprints, estimates align with the team\'s real velocity.'}
-                </p>
-                <div style={{ padding: '0.875rem 1rem', background: 'var(--bg-surface)', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '0.82rem', lineHeight: 1.65, color: 'var(--text-secondary)' }}>
-                  {isTR
-                    ? '🔁 Kalibrasyon döngüsü: Tahmin → Onay → Gerçek SP → Kalibrasyon → Daha iyi tahmin'
-                    : '🔁 Calibration loop: Estimate → Approve → Actual SP → Calibration → Better estimate'}
-                </div>
-              </>}
-            </div>
-
-            {/* ── Right panel (demo) ── */}
-            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.5rem', minHeight: '380px' }}>
-
-              {/* Step 0: Task type selection */}
-              {step === 0 && (
-                <div>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                    {isTR ? 'Görev Tipi' : 'Task Type'}
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                    {TASK_TYPES.map(tt => (
-                      <button
-                        key={tt.key}
-                        className={`hiw-task-card${taskType === tt.key ? ' active' : ''}`}
-                        onClick={() => { setTaskType(tt.key); setVals({}); }}
-                      >
-                        {taskType === tt.key && (
-                          <div className="hiw-task-card-check">✓</div>
-                        )}
-                        <span style={{ fontSize: '1.2rem' }}>{tt.icon}</span>
-                        <div>
-                          <div className="hiw-card-label" style={{ fontWeight: 700, fontSize: '0.82rem' }}>{isTR ? tt.labelTR : tt.labelEN}</div>
-                          <div className="hiw-card-desc" style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{isTR ? tt.descTR : tt.descEN}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  {taskType && (
-                    <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--accent-dim)', borderRadius: '8px', fontSize: '0.8rem', color: 'var(--accent-text)', fontWeight: 600 }}>
-                      ✓ {isTR ? `${CRITERIA_MAP[taskType].length} kriter yüklendi` : `${CRITERIA_MAP[taskType].length} criteria loaded`}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Step 1: Criteria scoring */}
-              {step === 1 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                    {isTR ? 'Kriterler' : 'Criteria'} · {TASK_TYPES.find(t => t.key === taskType)?.[isTR ? 'labelTR' : 'labelEN']}
-                  </div>
-                  {criteria.map((c, i) => (
-                    <div key={c.key} style={{ animation: `hiw-fade-up 0.3s ${i * 0.07}s both` }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                        <div>
-                          <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{isTR ? c.labelTR : c.labelEN}</span>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginLeft: '0.4rem' }}>{isTR ? c.descTR : c.descEN}</span>
-                        </div>
-                        <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--accent-text)', minWidth: 24, textAlign: 'right' }}>{getVal(c.key)}</span>
-                      </div>
-                      <div className="hiw-dot-row">
-                        {[1,2,3,4,5].map(v => (
-                          <div key={v} className={`hiw-dot${getVal(c.key) >= v ? ' filled' : ''}`} onClick={() => setVal(c.key, v)} />
-                        ))}
-                        <div className="hiw-bar-wrap" style={{ flex: 1 }}>
-                          <div className="hiw-bar" style={{ width: `${((getVal(c.key) - 1) / 4) * 100}%`, transition: 'width 0.2s' }} />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{ marginTop: '0.25rem', padding: '0.6rem 0.75rem', background: 'var(--bg-base)', borderRadius: '8px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                    {isTR ? `Ham skor: ${(score * 100).toFixed(0)}/100 → Fibonacci: ${sp} SP` : `Raw score: ${(score * 100).toFixed(0)}/100 → Fibonacci: ${sp} SP`}
-                  </div>
-                </div>
-              )}
-
-              {/* Step 2: Result reveal */}
-              {step === 2 && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '340px', gap: '1.25rem' }}>
-                  {!revealed ? (
-                    <>
-                      <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                        {isTR ? 'Kriterler ağırlıklı şekilde hesaplandı.' : 'Criteria have been weighted and calculated.'}
-                        <br />{isTR ? 'Sonucu hazır mısın?' : 'Ready to see the result?'}
-                      </div>
-                      <button className="hiw-reveal-btn" onClick={handleReveal}>
-                        {isTR ? '⚡ Tahmini Göster' : '⚡ Reveal Estimate'}
-                      </button>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        {criteria.map(c => (
-                          <div key={c.key} style={{ textAlign: 'center' }}>
-                            <div style={{ width: 6, height: `${getVal(c.key) * 12}px`, background: 'var(--accent)', borderRadius: 3, margin: '0 auto 4px', opacity: 0.5, transition: 'height 0.3s' }} />
-                            <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', maxWidth: 40, textAlign: 'center' }}>{getVal(c.key)}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="hiw-sp-bubble">{counting}</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Story Points</div>
-                      <div style={{ display: 'flex', gap: '1rem', marginTop: '0.25rem' }}>
-                        <div style={{ textAlign: 'center', padding: '0.6rem 1rem', background: 'var(--bg-base)', borderRadius: '10px' }}>
-                          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--green)' }}>{confidence}%</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{isTR ? 'Güven' : 'Confidence'}</div>
-                        </div>
-                        <div style={{ textAlign: 'center', padding: '0.6rem 1rem', background: 'var(--bg-base)', borderRadius: '10px' }}>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 800 }}>T-Shirt</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{isTR ? 'Teknik' : 'Technique'}</div>
-                        </div>
-                      </div>
-                      <div style={{ width: '100%', marginTop: '0.5rem' }}>
-                        {criteria.map((c, i) => (
-                          <div key={c.key} style={{ marginBottom: '0.4rem', animation: `hiw-fade-up 0.3s ${i * 0.1}s both` }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '2px' }}>
-                              <span>{isTR ? c.labelTR : c.labelEN}</span>
-                              <span>{getVal(c.key)}/5</span>
-                            </div>
-                            <div className="hiw-bar-wrap">
-                              <div className="hiw-bar" style={{ width: `${(getVal(c.key) / 5) * 100}%`, animationDelay: `${i * 0.1}s` }} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Step 3: Calibration */}
-              {step === 3 && (
-                <div>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '1rem' }}>
-                    {isTR ? 'Kalibrasyon Geçmişi' : 'Calibration History'}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    {CAL_ROUNDS.slice(0, calRound + 1).map((r, i) => (
-                      <div key={r.sprint} className={`hiw-cal-row${i === calRound ? ' active' : ''}`} style={{ animation: `hiw-fade-up 0.3s ${i === calRound ? '0s' : '0s'} both` }}>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', minWidth: 52 }}>Sprint {r.sprint}</div>
-                        <div style={{ fontSize: '0.78rem', minWidth: 80 }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>{isTR ? 'Tahmin' : 'Est.'}: </span>
-                          <span style={{ fontWeight: 700 }}>{r.estimated}</span>
-                          <span style={{ color: 'var(--text-secondary)', marginLeft: '0.4rem' }}>{isTR ? 'Gerçek' : 'Act.'}: </span>
-                          <span style={{ fontWeight: 700, color: r.estimated === r.actual ? 'var(--green)' : 'var(--text-primary)' }}>{r.actual}</span>
-                        </div>
-                        <div className="hiw-acc-bar-wrap">
-                          <div className="hiw-acc-bar" style={{ width: `${r.accuracy}%` }} />
-                        </div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--green)', minWidth: 36, textAlign: 'right' }}>{r.accuracy}%</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    {calRound < CAL_ROUNDS.length - 1 ? (
-                      <button
-                        className="hiw-reveal-btn"
-                        style={{ opacity: calAnimating ? 0.6 : 1 }}
-                        onClick={handleCalibrate}
-                        disabled={calAnimating}
-                      >
-                        {calAnimating ? '...' : isTR ? `Sprint ${calRound + 2} → Kalibre Et` : `Sprint ${calRound + 2} → Calibrate`}
-                      </button>
-                    ) : (
-                      <div style={{ padding: '0.6rem 1rem', background: 'var(--accent-dim)', borderRadius: '10px', color: 'var(--accent-text)', fontWeight: 700, fontSize: '0.88rem' }}>
-                        🎯 {isTR ? '%95 isabetlilik — motor kalibre edildi!' : '95% accuracy — engine calibrated!'}
-                      </div>
-                    )}
-                    {calRound > 0 && (
-                      <button onClick={() => setCalRound(0)} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem 0.8rem', cursor: 'pointer', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                        {isTR ? 'Sıfırla' : 'Reset'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Navigation buttons */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem', alignItems: 'center' }}>
-            <button className="hiw-nav-btn" onClick={() => step > 0 ? goStep(step - 1) : navigate('/')} style={{ visibility: step === 0 ? 'hidden' : 'visible' }}>
-              ← {isTR ? 'Önceki' : 'Previous'}
-            </button>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{step + 1} / {steps.length}</div>
-            {step < steps.length - 1 ? (
-              <button className="hiw-nav-btn primary" onClick={() => goStep(step + 1)}>
-                {isTR ? 'Sonraki' : 'Next'} →
-              </button>
-            ) : (
-              <button className="hiw-nav-btn primary" onClick={() => navigate('/estimate')}>
-                {isTR ? 'Dene →' : 'Try It →'}
-              </button>
-            )}
-          </div>
+              </MockBrowser>
+            }
+          />
         </div>
+
+        <hr className="hiw-full-divider" />
+
+        {/* ── SECTION 2: Criteria ── */}
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '72px 2rem' }}>
+          <DemoSection
+            reverse
+            label={isTR ? 'Adım 02 — Kriter Değerlendirmesi' : 'Step 02 — Criteria Scoring'}
+            title={isTR ? 'Her boyutu ekibinin gözünden puan' : 'Score every dimension through your team\'s lens'}
+            desc={isTR
+              ? 'Her kriter 1–5 arası puanlanır ve farklı ağırlıklarla birleştirilir. Teknik karmaşıklık mı ağır basıyor yoksa belirsizlik mi? Motor bu denge üzerinden hesaplar.'
+              : 'Each criterion is scored 1–5 and combined with different weights. Does technical complexity dominate or uncertainty? The engine calculates based on this balance.'}
+            features={isTR ? [
+              <><strong>Ağırlıklı hesaplama</strong> — her kriter farklı SP katkısı taşır (örn. teknik karmaşıklık %35)</>,
+              <><strong>Anlık geri bildirim</strong> — puanı değiştirdikçe tahmini skor canlı güncellenir</>,
+              <><strong>Takım kalibrasyonu</strong> — ağırlıklar zamanla takımın geçmiş verisiyle ayarlanır</>,
+            ] : [
+              <><strong>Weighted calculation</strong> — each criterion carries different SP contribution (e.g. technical complexity 35%)</>,
+              <><strong>Instant feedback</strong> — estimated score updates live as you change values</>,
+              <><strong>Team calibration</strong> — weights adjust over time with team's historical data</>,
+            ]}
+            browser={
+              <MockBrowser url="spee.app/estimate">
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 14 }}>
+                  {isTR ? 'Kriterler — User Story' : 'Criteria — User Story'}
+                </div>
+                <ScaleRow label={isTR ? 'Teknik Karmaşıklık' : 'Technical Complexity'} desc={isTR ? '×35%' : '×35%'} value={tc} onChange={setTc} />
+                <ScaleRow label={isTR ? 'Kapsam Netliği' : 'Scope Clarity'}          desc={isTR ? '×20%' : '×20%'} value={sc} onChange={setSc} />
+                <ScaleRow label={isTR ? 'Test Yükü' : 'Test Load'}                    desc={isTR ? '×20%' : '×20%'} value={tl} onChange={setTl} />
+                <ScaleRow label={isTR ? 'Alan Bilgisi' : 'Domain Knowledge'}          desc={isTR ? '×25%' : '×25%'} value={dk} onChange={setDk} />
+                <div style={{ marginTop: 14, background: 'var(--bg-base)', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{isTR ? 'Tahmini skor' : 'Estimated score'}</span>
+                  <span style={{ fontWeight: 800, fontSize: 18, color: 'var(--accent-text)' }}>{spVal} SP</span>
+                </div>
+              </MockBrowser>
+            }
+          />
+        </div>
+
+        <hr className="hiw-full-divider" />
+
+        {/* ── SECTION 3: Result ── */}
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '72px 2rem' }}>
+          <DemoSection
+            label={isTR ? 'Adım 03 — SP Önerisi' : 'Step 03 — SP Suggestion'}
+            title={isTR ? 'Deterministik motor, Fibonacci skalasında öneri' : 'Deterministic engine, suggestion on Fibonacci scale'}
+            desc={isTR
+              ? 'Makine öğrenmesi yok, kara kutu yok. Ağırlıklı kriter ortalaması Fibonacci skalasına deterministik olarak eşlenir. Her tahmin açıklanabilir ve tekrarlanabilir.'
+              : 'No machine learning, no black box. The weighted criterion average is deterministically mapped to the Fibonacci scale. Every estimate is explainable and repeatable.'}
+            features={isTR ? [
+              <><strong>Fibonacci skalası</strong> — 1, 2, 3, 5, 8, 13, 21 değerlerinden en uygun seçilir</>,
+              <><strong>Güven skoru</strong> — kriterlerin doluluk oranı ve tutarlılığından hesaplanır</>,
+              <><strong>Kriter katkı grafiği</strong> — hangi boyutun SP'yi ne kadar etkilediği görülür</>,
+              <><strong>Teknik göstergesi</strong> — T-Shirt, Planning Poker, Fibonacci hangi teknik uygulandığı</>,
+            ] : [
+              <><strong>Fibonacci scale</strong> — most suitable value selected from 1, 2, 3, 5, 8, 13, 21</>,
+              <><strong>Confidence score</strong> — calculated from criteria completeness and consistency</>,
+              <><strong>Criterion contribution chart</strong> — see how much each dimension affects the SP</>,
+              <><strong>Technique indicator</strong> — T-Shirt, Planning Poker, or Fibonacci applied</>,
+            ]}
+            browser={
+              <MockBrowser url="spee.app/estimate">
+                <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+                  <div style={{ flex: 1, textAlign: 'center', padding: '16px 8px', background: 'var(--bg-base)', borderRadius: 10 }}>
+                    <div style={{ fontSize: 40, fontWeight: 900, color: 'var(--accent)', lineHeight: 1 }}>{spVal}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>Story Points</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ padding: '10px 14px', background: 'var(--bg-base)', borderRadius: 8, textAlign: 'center' }}>
+                      <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--green)' }}>{confidence}%</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{isTR ? 'Güven' : 'Confidence'}</div>
+                    </div>
+                    <div style={{ padding: '10px 14px', background: 'var(--bg-base)', borderRadius: 8, textAlign: 'center' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700 }}>T-Shirt</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{isTR ? 'Teknik' : 'Technique'}</div>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 8 }}>
+                  {isTR ? 'Kriter Katkıları' : 'Criterion Contributions'}
+                </div>
+                <AnimBar label={isTR ? 'Teknik Karmaşıklık' : 'Technical Complexity'} val={`${tc}/5`} pct={(tc/5)*100} delay={0} />
+                <AnimBar label={isTR ? 'Kapsam Netliği' : 'Scope Clarity'}           val={`${sc}/5`} pct={(sc/5)*100} delay={.1} color="var(--green)" />
+                <AnimBar label={isTR ? 'Test Yükü' : 'Test Load'}                     val={`${tl}/5`} pct={(tl/5)*100} delay={.2} />
+                <AnimBar label={isTR ? 'Alan Bilgisi' : 'Domain Knowledge'}           val={`${dk}/5`} pct={(dk/5)*100} delay={.3} color="var(--green)" />
+              </MockBrowser>
+            }
+          />
+        </div>
+
+        <hr className="hiw-full-divider" />
+
+        {/* ── SECTION 4: Calibration ── */}
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '72px 2rem' }}>
+          <DemoSection
+            reverse
+            label={isTR ? 'Adım 04 — Kalibrasyon' : 'Step 04 — Calibration'}
+            title={isTR ? 'Her sprintle daha isabetli' : 'More accurate with every sprint'}
+            desc={isTR
+              ? 'Sprint bitiminde gerçek SP\'yi gir. Motor tahmin ile gerçek arasındaki farkı öğrenir ve bir sonraki benzer görevi daha isabetli tahmin eder. Birkaç sprint içinde doğruluk oranı belirgin şekilde artar.'
+              : 'Enter the actual SP at sprint end. The engine learns from the difference between estimate and actual, and produces more accurate estimates for similar tasks next time. Accuracy improves noticeably within a few sprints.'}
+            features={isTR ? [
+              <><strong>Kalibre döngüsü</strong> — Tahmin → Onay → Gerçek SP → Motor güncellenir → Daha iyi tahmin</>,
+              <><strong>Baz işler (Baselines)</strong> — Referans iş kalemlerini kaydet, motor benzer işlerde baz alır</>,
+              <><strong>Kalibrasyon geçmişi</strong> — Sprint bazında tahmin vs gerçek karşılaştırması ve isabetlilik trendi</>,
+              <><strong>Takım bazlı</strong> — Her takım kendi kalibrasyonunu taşır, farklı takımlar birbirini etkilemez</>,
+            ] : [
+              <><strong>Calibration loop</strong> — Estimate → Approve → Actual SP → Engine updates → Better estimate</>,
+              <><strong>Baselines</strong> — Save reference work items; engine uses them as anchors for similar tasks</>,
+              <><strong>Calibration history</strong> — Sprint-level estimate vs actual comparison and accuracy trend</>,
+              <><strong>Team-scoped</strong> — Each team carries its own calibration, teams don't interfere with each other</>,
+            ]}
+            browser={
+              <MockBrowser url="spee.app/calibration">
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 12 }}>
+                  {isTR ? 'Kalibrasyon Geçmişi' : 'Calibration History'}
+                </div>
+                {[
+                  { sprint: 'Sprint 1', est: 8,  act: 13, acc: 38 },
+                  { sprint: 'Sprint 2', est: 13, act: 13, acc: 61 },
+                  { sprint: 'Sprint 3', est: 5,  act: 8,  acc: 74 },
+                  { sprint: 'Sprint 4', est: 8,  act: 8,  acc: 87 },
+                  { sprint: 'Sprint 5', est: 5,  act: 5,  acc: 95 },
+                ].map((r, i) => (
+                  <div key={i} className={`hiw-cal-row${i === 4 ? ' cur' : ''}`}>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', minWidth: 52, fontFamily: 'monospace' }}>{r.sprint}</span>
+                    <span style={{ fontSize: 11, minWidth: 80 }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>{isTR ? 'Th:' : 'Est:'} </span><strong>{r.est}</strong>
+                      <span style={{ color: 'var(--text-secondary)', marginLeft: 6 }}>{isTR ? 'Ger:' : 'Act:'} </span>
+                      <strong style={{ color: r.est === r.act ? 'var(--green)' : 'var(--text-primary)' }}>{r.act}</strong>
+                    </span>
+                    <div style={{ flex: 1, height: 5, background: 'var(--bg-base)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${r.acc}%`, background: r.acc >= 85 ? 'var(--green)' : 'var(--accent)', borderRadius: 3, transition: 'width .8s' }} />
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: r.acc >= 85 ? 'var(--green)' : 'var(--accent-text)', minWidth: 34, textAlign: 'right' }}>{r.acc}%</span>
+                  </div>
+                ))}
+                <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--accent-dim)', borderRadius: 8, fontSize: 12, color: 'var(--accent-text)', fontWeight: 600 }}>
+                  🎯 {isTR ? 'Sprint 5 — Motor kalibre edildi' : 'Sprint 5 — Engine calibrated'}
+                </div>
+              </MockBrowser>
+            }
+          />
+        </div>
+
+        <hr className="hiw-full-divider" />
+
+        {/* ── SECTION 5: History ── */}
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '72px 2rem' }}>
+          <DemoSection
+            label={isTR ? 'Geçmiş & Toplu Tahmin' : 'History & Bulk Estimation'}
+            title={isTR ? 'Tahmin geçmişi ve toplu backlog analizi' : 'Estimate history and bulk backlog analysis'}
+            desc={isTR
+              ? 'Geçmiş tüm tahminler kayıt altında. Toplu tahmin modunda Excel\'den PBI listesi yükle, sistem her satır için otomatik metin analizi + tahmin çalıştırır.'
+              : 'All past estimates are recorded. In bulk estimation mode, upload a PBI list from Excel and the system runs automatic text analysis + estimation for each row.'}
+            features={isTR ? [
+              <><strong>Tahmin geçmişi</strong> — her oturum kaydedilir, SP, teknik, tarih bilgisiyle filtrelenebilir</>,
+              <><strong>Toplu tahmin (Bulk)</strong> — Excel\'den PBI listesi yükle, tüm backlog için SP önerisi al</>,
+              <><strong>Metin analizi</strong> — başlık ve açıklamadan otomatik olarak görev tipi ve kriter tahmini</>,
+              <><strong>Excel dışa aktarım</strong> — tahmin sonuçlarını takımla paylaşmak için Excel\'e indir</>,
+            ] : [
+              <><strong>Estimate history</strong> — every session saved, filterable by SP, technique, date</>,
+              <><strong>Bulk estimation</strong> — upload PBI list from Excel, get SP suggestions for entire backlog</>,
+              <><strong>Text analysis</strong> — automatic task type and criteria inference from title and description</>,
+              <><strong>Excel export</strong> — download estimation results to Excel to share with team</>,
+            ]}
+            browser={
+              <MockBrowser url="spee.app/history">
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 12 }}>
+                  {isTR ? 'Son Tahminler' : 'Recent Estimates'}
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                      {[isTR ? 'Görev' : 'Task', isTR ? 'Tip' : 'Type', 'SP', isTR ? 'Tarih' : 'Date'].map((h,i) => (
+                        <th key={i} style={{ textAlign: 'left', padding: '4px 8px 8px', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 10, letterSpacing: '0.05em' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { task: isTR ? 'Ödeme akışı refaktörü' : 'Payment flow refactor', type: 'User Story', sp: 13, date: '28 Ağu' },
+                      { task: isTR ? 'Login hatası düzeltme' : 'Fix login bug',          type: 'Bug',       sp: 3,  date: '26 Ağu' },
+                      { task: isTR ? 'CI/CD pipeline güncelleme' : 'CI/CD pipeline update', type: 'DevOps', sp: 8, date: '24 Ağu' },
+                      { task: isTR ? 'Kullanıcı araştırması' : 'User research',          type: 'Analysis',  sp: 5,  date: '22 Ağu' },
+                    ].map((r, i) => (
+                      <tr key={i} style={{ borderBottom: i < 3 ? '1px solid var(--border)' : 'none' }}>
+                        <td style={{ padding: '8px', color: 'var(--text-primary)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.task}</td>
+                        <td style={{ padding: '8px' }}><span style={{ fontSize: 10, fontWeight: 600, background: 'var(--accent-dim)', color: 'var(--accent-text)', padding: '2px 6px', borderRadius: 4 }}>{r.type}</span></td>
+                        <td style={{ padding: '8px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'monospace' }}>{r.sp}</td>
+                        <td style={{ padding: '8px', color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: 11 }}>{r.date}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </MockBrowser>
+            }
+          />
+        </div>
+
+        <hr className="hiw-full-divider" />
+
+        {/* CTA */}
+        <div style={{ textAlign: 'center', padding: '72px 2rem 80px' }}>
+          <h2 style={{ fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 900, letterSpacing: '-0.03em', marginBottom: 14 }}>
+            {isTR ? 'İlk tahminini şimdi yap' : 'Make your first estimate now'}
+          </h2>
+          <p style={{ fontSize: 15, color: 'var(--text-secondary)', marginBottom: 28, maxWidth: 400, margin: '0 auto 28px' }}>
+            {isTR ? 'Kayıt yok, kurulum yok. Takımını oluştur, hemen başla.' : 'No sign-up, no setup. Create your team and get started.'}
+          </p>
+          <button onClick={() => navigate('/estimate')} style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 12, padding: '13px 36px', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 20px rgba(79,70,229,0.3)' }}>
+            {isTR ? '⚡ Hemen Başla' : '⚡ Get Started'}
+          </button>
+        </div>
+
       </div>
     </>
   );
