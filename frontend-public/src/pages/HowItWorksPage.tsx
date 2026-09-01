@@ -66,26 +66,6 @@ function MockBrowser({ url, children }: { url: string; children: React.ReactNode
   );
 }
 
-function AnimBar({ label, val, pct, trigger, delay = 0, color = 'var(--accent)' }: {
-  label: string; val: string; pct: number; trigger: boolean; delay?: number; color?: string;
-}) {
-  const [w, setW] = useState(0);
-  useEffect(() => {
-    if (!trigger) return;
-    const t = setTimeout(() => setW(pct), delay);
-    return () => clearTimeout(t);
-  }, [trigger, pct, delay]);
-  return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 3 }}>
-        <span>{label}</span><span style={{ fontWeight: 600 }}>{val}</span>
-      </div>
-      <div style={{ height: 6, background: 'var(--bg-base)', borderRadius: 4, overflow: 'hidden' }}>
-        <div style={{ height: '100%', borderRadius: 4, background: color, width: `${w}%`, transition: 'width .85s cubic-bezier(.22,1,.36,1)' }} />
-      </div>
-    </div>
-  );
-}
 
 function Section({ reverse, label, title, desc, features, browser }: {
   reverse?: boolean; label: string; title: string; desc: string;
