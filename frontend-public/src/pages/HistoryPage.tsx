@@ -113,11 +113,6 @@ export default function HistoryPage({ teamId }: { teamId: string }) {
 
   const hasMore = items.length < total;
 
-  function completionSelectClass(val: boolean | null): string {
-    if (val === true) return 'completion-done';
-    if (val === false) return 'completion-fail';
-    return '';
-  }
 
   return (
     <div>
