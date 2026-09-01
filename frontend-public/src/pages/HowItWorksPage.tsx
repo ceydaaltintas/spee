@@ -567,7 +567,7 @@ export default function HowItWorksPage() {
             {isTR ? 'Ürün Turu' : 'Product Tour'}
           </div>
           <h1 className="hiw-hero-2" style={{ fontSize: 'clamp(30px,5vw,50px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 18 }}>
-            {isTR ? <>SPEE ile <span style={{ color: 'var(--accent-text)' }}>her şeyi</span> göster</> : <>See <span style={{ color: 'var(--accent-text)' }}>everything</span> SPEE can do</>}
+            {isTR ? <>SPEE'nin yapabildiği <span style={{ color: 'var(--accent-text)' }}>her şeyi</span> gör</> : <>See <span style={{ color: 'var(--accent-text)' }}>everything</span> SPEE can do</>}
           </h1>
           <p className="hiw-hero-3" style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.75, marginBottom: 32 }}>
             {isTR
