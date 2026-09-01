@@ -61,7 +61,7 @@ function MockBrowser({ url, children }: { url: string; children: React.ReactNode
         </div>
         <div style={{ flex: 1, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '3px 10px', fontSize: 10.5, color: 'var(--text-secondary)', textAlign: 'center', fontFamily: 'monospace' }}>{url}</div>
       </div>
-      <div style={{ padding: '18px 20px' }}>{children}</div>
+      <div className="hiw-browser-body">{children}</div>
     </div>
   );
 }
@@ -395,8 +395,8 @@ function BulkDemo({ isTR }: { isTR: boolean }) {
           </div>
         </div>
 
-        <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+        <div className="hiw-table-scroll" style={{ borderRadius: 8, border: '1px solid var(--border)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 300 }}>
             <thead>
               <tr style={{ background: 'var(--bg-base)' }}>
                 {[isTR?'Başlık':'Title', isTR?'Tip':'Type', 'SP', isTR?'Güven':'Conf.'].map((h, i) => (
@@ -485,8 +485,8 @@ function CalibrationDemo({ isTR }: { isTR: boolean }) {
         )}
 
         {/* Table */}
-        <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+        <div className="hiw-table-scroll" style={{ borderRadius: 8, border: '1px solid var(--border)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 380 }}>
             <thead>
               <tr style={{ background: 'var(--bg-base)' }}>
                 {['Issue', isTR?'Sprint':'Sprint', isTR?'Tip':'Type', isTR?'Motor':'Engine', isTR?'Onay':'Approved', isTR?'Fark':'Diff'].map((h, i) => (
@@ -635,6 +635,8 @@ export default function HowItWorksPage() {
         .hiw-baselines-grid {
           display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
         }
+        .hiw-browser-body { padding: 18px 20px; }
+        .hiw-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; }
         @media (max-width: 700px) {
           .hiw-section {
             grid-template-columns: 1fr !important;
@@ -645,6 +647,10 @@ export default function HowItWorksPage() {
           .hiw-section-rtl { direction: ltr !important; }
           .hiw-steps { grid-template-columns: repeat(2,1fr) !important; }
           .hiw-baselines-grid { grid-template-columns: 1fr !important; }
+          .hiw-browser-body { padding: 12px 10px !important; }
+          .hiw-table-scroll table { font-size: 10px !important; }
+          .hiw-table-scroll th,
+          .hiw-table-scroll td { padding: 5px 6px !important; }
         }
       `}</style>
 
