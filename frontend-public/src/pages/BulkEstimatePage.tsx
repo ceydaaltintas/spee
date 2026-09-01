@@ -50,33 +50,32 @@ const TASK_TYPE_FROM_TR: Record<string, TaskType> = {
   'alt gorev': 'SUB_TASK',
 };
 
-const TEMPLATE_DATA = [
-  ['başlık', 'açıklama', 'görev tipi', 'sprint', 'id'],
-  ['Kullanıcı şifre sıfırlama', 'JWT token ile email üzerinden sıfırlama akışı. Güvenlik kısıtları var.', 'Kullanıcı Hikayesi', 'Sprint-42', 'PROJ-101'],
-  ['Login hata mesajı düzeltme', 'Yanlış şifre girildiğinde ekran boş kalıyor', 'Hata', 'Sprint-42', 'PROJ-102'],
-  ['Ödeme entegrasyon analizi', 'Stripe ve iyzico karşılaştırması yapılacak', 'Analiz', '', ''],
-];
+function downloadTemplate(lang: 'tr' | 'en') {
+  const isTR = lang === 'tr';
+  const templateData = isTR
+    ? [
+        ['başlık', 'açıklama', 'görev tipi', 'sprint', 'id'],
+        ['Kullanıcı şifre sıfırlama', 'JWT token ile email üzerinden sıfırlama akışı. Güvenlik kısıtları var.', 'Kullanıcı Hikayesi', 'Sprint-42', 'PROJ-101'],
+        ['Login hata mesajı düzeltme', 'Yanlış şifre girildiğinde ekran boş kalıyor', 'Hata', 'Sprint-42', 'PROJ-102'],
+        ['Ödeme entegrasyon analizi', 'Stripe ve iyzico karşılaştırması yapılacak', 'Analiz', '', ''],
+      ]
+    : [
+        ['title', 'description', 'task type', 'sprint', 'id'],
+        ['User password reset', 'Password reset flow via JWT token and email. Has security constraints.', 'User Story', 'Sprint-42', 'PROJ-101'],
+        ['Login error message fix', 'Screen goes blank when wrong password is entered', 'Bug', 'Sprint-42', 'PROJ-102'],
+        ['Payment integration analysis', 'Comparing Stripe and other providers', 'Analysis', '', ''],
+      ];
+  const taskTypeNotes = isTR
+    ? [['Görev Tipi Değerleri'], ['Kullanıcı Hikayesi'], ['Hata'], ['Analiz'], ['Test Görevi'], ['Tasarım'], ['DevOps'], ['Spike'], ['Alt Görev']]
+    : [['Task Type Values'], ['User Story'], ['Bug'], ['Analysis'], ['Test Task'], ['Design'], ['DevOps'], ['Spike'], ['Sub-task']];
 
-const TASK_TYPE_NOTES = [
-  ['Görev Tipi Değerleri'],
-  ['Kullanıcı Hikayesi'],
-  ['Hata'],
-  ['Analiz'],
-  ['Test Görevi'],
-  ['Tasarım'],
-  ['DevOps'],
-  ['Spike'],
-  ['Alt Görev'],
-];
-
-function downloadTemplate() {
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(TEMPLATE_DATA);
+  const ws = XLSX.utils.aoa_to_sheet(templateData);
   ws['!cols'] = [{ wch: 40 }, { wch: 60 }, { wch: 20 }, { wch: 15 }, { wch: 15 }];
-  XLSX.utils.book_append_sheet(wb, ws, 'PBIler');
-  const wsNotes = XLSX.utils.aoa_to_sheet(TASK_TYPE_NOTES);
+  XLSX.utils.book_append_sheet(wb, ws, isTR ? 'PBIler' : 'PBIs');
+  const wsNotes = XLSX.utils.aoa_to_sheet(taskTypeNotes);
   wsNotes['!cols'] = [{ wch: 25 }];
-  XLSX.utils.book_append_sheet(wb, wsNotes, 'Görev Tipleri');
+  XLSX.utils.book_append_sheet(wb, wsNotes, isTR ? 'Görev Tipleri' : 'Task Types');
   XLSX.writeFile(wb, 'spee_bulk_template.xlsx');
 }
 
@@ -113,7 +112,7 @@ function loadDraft() {
 }
 
 export default function BulkEstimatePage({ teamId }: { teamId: string }) {
-  const { t, taskTypeLabel } = useLang();
+  const { t, lang, taskTypeLabel } = useLang();
   const draft = loadDraft();
   const [rows, setRows] = useState<BulkRow[]>(draft?.rows ?? []);
   const [results, setResults] = useState<BulkResult[]>(draft?.results ?? []);
@@ -269,7 +268,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
             {t('bulk_select_file')}
           </button>
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handleFile} />
-          <button onClick={downloadTemplate}>
+          <button onClick={() => downloadTemplate(lang)}>
             {t('bulk_download_template')}
           </button>
           {fileName && (
