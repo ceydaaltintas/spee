@@ -635,6 +635,7 @@ export default function HowItWorksPage() {
         .hiw-baselines-grid {
           display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
         }
+        .hiw-section-inner { min-width: 0; }
         .hiw-browser-body { padding: 18px 20px; }
         .hiw-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; }
         @media (max-width: 700px) {
