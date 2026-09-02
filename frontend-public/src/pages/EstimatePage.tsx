@@ -421,7 +421,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
   const activeCriteria = CRITERIA_BY_TASK_TYPE[taskType] ?? [];
 
   const nonBooleanFilled = Object.entries(criteria).filter(
-    ([k, v]) => v && !BOOLEAN_CRITERIA.includes(k as any),
+    ([k, v]) => v && (!BOOLEAN_CRITERIA.includes(k as any) || (v as any).value === true),
   ).length;
   const canEstimate = nonBooleanFilled >= 3;
 
