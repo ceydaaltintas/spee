@@ -351,12 +351,13 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
               </thead>
               <tbody>
                 {tableRows.map((row, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <tr key={i} style={{ borderBottom: '1px solid var(--border)', opacity: processing ? 0.6 : 1 }}>
                     <td style={{ padding: '4px 6px' }}>
                       <input
                         value={row.title}
                         onChange={e => updateTableRow(i, 'title', e.target.value)}
                         placeholder={isTR ? 'PBI başlığı...' : 'PBI title...'}
+                        disabled={processing}
                         style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', fontSize: '0.8rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
                       />
                     </td>
@@ -365,6 +366,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
                         value={row.description ?? ''}
                         onChange={e => updateTableRow(i, 'description', e.target.value)}
                         placeholder={isTR ? 'Açıklama (opsiyonel)...' : 'Description (optional)...'}
+                        disabled={processing}
                         style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', fontSize: '0.8rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
                       />
                     </td>
@@ -372,6 +374,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
                       <select
                         value={row.taskType ?? ''}
                         onChange={e => updateTableRow(i, 'taskType', e.target.value)}
+                        disabled={processing}
                         style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', fontSize: '0.8rem', background: 'var(--bg-surface)', color: row.taskType ? 'var(--text-primary)' : 'var(--text-muted)', boxSizing: 'border-box' }}
                       >
                         <option value="">{isTR ? 'otomatik' : 'auto'}</option>
@@ -385,6 +388,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
                         value={row.sprintId ?? ''}
                         onChange={e => updateTableRow(i, 'sprintId', e.target.value)}
                         placeholder="Sprint-42"
+                        disabled={processing}
                         style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', fontSize: '0.8rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
                       />
                     </td>
@@ -393,13 +397,15 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
                         value={row.itemId ?? ''}
                         onChange={e => updateTableRow(i, 'itemId', e.target.value)}
                         placeholder="PROJ-101"
+                        disabled={processing}
                         style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', fontSize: '0.8rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
                       />
                     </td>
                     <td style={{ padding: '4px 2px', textAlign: 'center' }}>
                       <button
                         onClick={() => removeTableRow(i)}
-                        style={{ border: 'none', background: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '2px 4px' }}
+                        disabled={processing}
+                        style={{ border: 'none', background: 'none', color: 'var(--text-muted)', cursor: processing ? 'default' : 'pointer', fontSize: '1rem', lineHeight: 1, padding: '2px 4px' }}
                         title={isTR ? 'Satırı sil' : 'Remove row'}
                       >×</button>
                     </td>
