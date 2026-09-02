@@ -341,7 +341,6 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 700 }}>
               <thead>
                 <tr style={{ background: 'var(--bg-base)' }}>
-                  <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', width: 90 }}>{t('bulk_col_id')}</th>
                   <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>{t('bulk_col_title')} *</th>
                   <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>{t('bulk_col_desc')}</th>
                   <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', width: 160 }}>{t('bulk_col_task_type')}</th>
