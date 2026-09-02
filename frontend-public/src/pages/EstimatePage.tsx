@@ -420,10 +420,8 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
 
   const activeCriteria = CRITERIA_BY_TASK_TYPE[taskType] ?? [];
 
-  const nonBooleanFilled = Object.entries(criteria).filter(
-    ([k, v]) => v && (!BOOLEAN_CRITERIA.includes(k as any) || (v as any).value === true),
-  ).length;
-  const canEstimate = nonBooleanFilled >= 3;
+  const filledInState = Object.keys(criteria).filter(k => activeCriteria.some(c => c.key === k)).length;
+  const canEstimate = filledInState >= 3;
 
   function setCriterion(key: string, type: 'scale5' | 'count' | 'boolean', raw: string | boolean) {
     setBaselineDirty(true);
@@ -547,9 +545,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
     }
   }
 
-  const filledCount = activeCriteria.filter(c =>
-    c.type === 'boolean' || Object.prototype.hasOwnProperty.call(criteria, c.key)
-  ).length;
+  const filledCount = filledInState;
   const totalCount = activeCriteria.length;
 
   return (
@@ -690,7 +686,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
           )}
           {!canEstimate && (
             <span style={{ fontSize: '0.78rem' }} className="criterion-desc">
-              {t('estimate_min_criteria')} ({nonBooleanFilled}/3)
+              {t('estimate_min_criteria')} ({filledInState}/3)
             </span>
           )}
         </div>
