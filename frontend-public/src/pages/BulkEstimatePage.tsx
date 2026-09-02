@@ -343,9 +343,10 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
                 <tr style={{ background: 'var(--bg-base)' }}>
                   <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', width: 90 }}>{t('bulk_col_id')}</th>
                   <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>{t('bulk_col_title')} *</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>{t('bulk_col_desc')}</th>
                   <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', width: 160 }}>{t('bulk_col_task_type')}</th>
                   <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', width: 110 }}>{t('bulk_col_sprint')}</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>{t('bulk_col_desc')}</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', width: 90 }}>{t('bulk_col_id')}</th>
                   <th style={{ padding: '6px 4px', borderBottom: '1px solid var(--border)', width: 28 }} />
                 </tr>
               </thead>
@@ -354,18 +355,18 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
                   <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '4px 6px' }}>
                       <input
-                        value={row.itemId ?? ''}
-                        onChange={e => updateTableRow(i, 'itemId', e.target.value)}
-                        placeholder="PROJ-101"
+                        value={row.title}
+                        onChange={e => updateTableRow(i, 'title', e.target.value)}
+                        placeholder={isTR ? 'PBI başlığı...' : 'PBI title...'}
                         style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', fontSize: '0.8rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
                       />
                     </td>
                     <td style={{ padding: '4px 6px' }}>
                       <input
-                        value={row.title}
-                        onChange={e => updateTableRow(i, 'title', e.target.value)}
-                        placeholder={isTR ? 'PBI başlığı...' : 'PBI title...'}
-                        style={{ width: '100%', border: `1px solid ${row.title ? 'var(--border)' : 'var(--border)'}`, borderRadius: 4, padding: '4px 6px', fontSize: '0.8rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
+                        value={row.description ?? ''}
+                        onChange={e => updateTableRow(i, 'description', e.target.value)}
+                        placeholder={isTR ? 'Açıklama (opsiyonel)...' : 'Description (optional)...'}
+                        style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', fontSize: '0.8rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
                       />
                     </td>
                     <td style={{ padding: '4px 6px' }}>
@@ -390,9 +391,9 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
                     </td>
                     <td style={{ padding: '4px 6px' }}>
                       <input
-                        value={row.description ?? ''}
-                        onChange={e => updateTableRow(i, 'description', e.target.value)}
-                        placeholder={isTR ? 'Açıklama (opsiyonel)...' : 'Description (optional)...'}
+                        value={row.itemId ?? ''}
+                        onChange={e => updateTableRow(i, 'itemId', e.target.value)}
+                        placeholder="PROJ-101"
                         style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', fontSize: '0.8rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
                       />
                     </td>
