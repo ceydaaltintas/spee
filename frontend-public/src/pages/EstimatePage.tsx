@@ -547,7 +547,9 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
     }
   }
 
-  const filledCount = Object.keys(criteria).filter(k => activeCriteria.some(c => c.key === k)).length;
+  const filledCount = activeCriteria.filter(c =>
+    c.type === 'boolean' || Object.prototype.hasOwnProperty.call(criteria, c.key)
+  ).length;
   const totalCount = activeCriteria.length;
 
   return (
@@ -856,7 +858,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
                   <span className="spee-tooltip-icon">i</span>
                   <span className="spee-tooltip-box">{t('estimate_confidence_tooltip')}</span>
                 </span>
-                {result.confidenceScore < 0.5 && (
+                {result.confidenceScore < 0.5 && filledCount < Math.ceil(totalCount * 0.7) && (
                   <span className="stat-value-amber" style={{ fontSize: '0.8rem' }}>{t('estimate_fill_more')}</span>
                 )}
               </div>
