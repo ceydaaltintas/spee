@@ -1237,3 +1237,31 @@ code {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ── Tooltip ────────────────────────────────────────────────────── */
+.spee-tooltip-wrap { position: relative; display: inline-flex; align-items: center; }
+.spee-tooltip-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  color: var(--text-muted); font-size: 9px; font-weight: 700;
+  cursor: default; margin-left: 4px; flex-shrink: 0; line-height: 1;
+  transition: background var(--t), border-color var(--t);
+}
+.spee-tooltip-wrap:hover .spee-tooltip-icon {
+  background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent-text);
+}
+.spee-tooltip-box {
+  display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%); width: 220px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 8px 10px;
+  font-size: 11.5px; color: var(--text-secondary); line-height: 1.55;
+  box-shadow: var(--shadow-md); z-index: 100; pointer-events: none;
+  white-space: normal; text-align: left;
+}
+.spee-tooltip-box::after {
+  content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border: 5px solid transparent; border-top-color: var(--border);
+}
+.spee-tooltip-wrap:hover .spee-tooltip-box { display: block; }

@@ -843,8 +843,12 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
               <div><strong>{t('estimate_technique')}</strong> {techniqueLabel(result.technique)}</div>
               <div>
                 <strong>{t('estimate_confidence')}</strong>{' '}
-                <span className={`${confidenceClass(result.confidenceScore)}`} style={{ fontWeight: 600 }}>
-                  %{(result.confidenceScore * 100).toFixed(0)}
+                <span className="spee-tooltip-wrap">
+                  <span className={confidenceClass(result.confidenceScore)} style={{ fontWeight: 600 }}>
+                    %{(result.confidenceScore * 100).toFixed(0)}
+                  </span>
+                  <span className="spee-tooltip-icon">i</span>
+                  <span className="spee-tooltip-box">{t('estimate_confidence_tooltip')}</span>
                 </span>
                 {result.confidenceScore < 0.5 && (
                   <span className="stat-value-amber" style={{ fontSize: '0.8rem' }}>{t('estimate_fill_more')}</span>
