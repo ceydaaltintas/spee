@@ -600,7 +600,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
           </div>
 
           <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-            <button onClick={() => { setRows([]); setResults([]); setFileName(''); localStorage.removeItem(BULK_DRAFT_KEY); if (fileRef.current) fileRef.current.value = ''; }}>
+            <button onClick={() => { setRows([]); setResults([]); setFileName(''); setTableRows(Array.from({ length: 10 }, EMPTY_TABLE_ROW)); localStorage.removeItem(BULK_DRAFT_KEY); if (fileRef.current) fileRef.current.value = ''; }}>
               {t('estimate_clear')}
             </button>
           </div>
