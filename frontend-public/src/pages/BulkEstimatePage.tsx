@@ -435,14 +435,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
               ) : null;
             })()}
             <div style={{ flex: 1 }} />
-            {processing ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span className="criterion-desc" style={{ fontSize: '0.8rem' }}>{t('bulk_analyzing')} {progress} / {tableRows.filter(r => r.title.trim()).length}</span>
-                <div className="progress-track" style={{ width: 120, height: '6px', display: 'block', marginLeft: 0 }}>
-                  <div className="progress-fill" style={{ width: `${(progress / tableRows.filter(r => r.title.trim()).length) * 100}%` }} />
-                </div>
-              </div>
-            ) : (
+            {!processing && (
               <button
                 className="primary"
                 disabled={!tableRows.some(r => r.title.trim())}
