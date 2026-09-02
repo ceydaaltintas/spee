@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../api/client';
 import { useLang } from '../contexts/LangContext';
+import { friendlyError } from '../utils/friendlyError';
 
 type TaskType = 'USER_STORY' | 'BUG' | 'ANALYSIS' | 'TEST_TASK' | 'DESIGN' | 'DEVOPS' | 'SPIKE' | 'SUB_TASK';
 
@@ -111,9 +112,24 @@ function loadDraft() {
   try { return JSON.parse(localStorage.getItem(BULK_DRAFT_KEY) ?? 'null'); } catch { return null; }
 }
 
+const TASK_TYPE_OPTIONS: { value: TaskType; labelTR: string; labelEN: string }[] = [
+  { value: 'USER_STORY', labelTR: 'Kullanıcı Hikayesi', labelEN: 'User Story' },
+  { value: 'BUG',        labelTR: 'Hata',               labelEN: 'Bug' },
+  { value: 'ANALYSIS',   labelTR: 'Analiz',              labelEN: 'Analysis' },
+  { value: 'TEST_TASK',  labelTR: 'Test Görevi',         labelEN: 'Test Task' },
+  { value: 'DESIGN',     labelTR: 'Tasarım',             labelEN: 'Design' },
+  { value: 'DEVOPS',     labelTR: 'DevOps',              labelEN: 'DevOps' },
+  { value: 'SPIKE',      labelTR: 'Spike',               labelEN: 'Spike' },
+  { value: 'SUB_TASK',   labelTR: 'Alt Görev',           labelEN: 'Sub-task' },
+];
+
+const EMPTY_TABLE_ROW = (): BulkRow => ({ title: '', description: '', taskType: undefined, sprintId: '', itemId: '' });
+
 export default function BulkEstimatePage({ teamId }: { teamId: string }) {
   const { t, lang, taskTypeLabel } = useLang();
+  const isTR = lang === 'tr';
   const draft = loadDraft();
+  const [inputMode, setInputMode] = useState<'file' | 'table'>('file');
   const [rows, setRows] = useState<BulkRow[]>(draft?.rows ?? []);
   const [results, setResults] = useState<BulkResult[]>(draft?.results ?? []);
   const [processing, setProcessing] = useState(false);
@@ -121,6 +137,27 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
   const [fileName, setFileName] = useState(draft?.fileName ?? '');
   const [error, setError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const [tableRows, setTableRows] = useState<BulkRow[]>(() => Array.from({ length: 10 }, EMPTY_TABLE_ROW));
+
+  function updateTableRow(i: number, field: keyof BulkRow, value: string) {
+    setTableRows(prev => {
+      const next = [...prev];
+      if (field === 'taskType') {
+        next[i] = { ...next[i]!, taskType: value as TaskType || undefined };
+      } else {
+        next[i] = { ...next[i]!, [field]: value };
+      }
+      return next;
+    });
+  }
+
+  function addTableRow() {
+    setTableRows(prev => prev.length >= 50 ? prev : [...prev, EMPTY_TABLE_ROW()]);
+  }
+
+  function removeTableRow(i: number) {
+    setTableRows(prev => prev.length <= 1 ? prev : prev.filter((_, idx) => idx !== i));
+  }
 
   function saveDraft(update: { rows?: BulkRow[]; results?: BulkResult[]; fileName?: string }) {
     const current = loadDraft() ?? {};
@@ -176,8 +213,10 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
     reader.readAsBinaryString(file);
   }
 
-  async function handleProcess() {
-    if (rows.length === 0) return;
+  async function handleProcess(overrideRows?: BulkRow[]) {
+    const processRows = overrideRows ?? rows;
+    if (processRows.length === 0) return;
+    setRows(processRows);
     setProcessing(true);
     setProgress(0);
     setResults([]);
@@ -185,8 +224,8 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
 
     const out: BulkResult[] = [];
 
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i]!;
+    for (let i = 0; i < processRows.length; i++) {
+      const row = processRows[i]!;
       try {
         const analyzeRes = await api.post('/analyze-text', {
           title: row.title,
@@ -221,10 +260,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
           sourceId,
         });
       } catch (e: any) {
-        const status = e.response?.status;
-        const msg = status === 429
-          ? 'AI kota sınırına ulaşıldı, lütfen 1 dakika bekleyip tekrar deneyin'
-          : e.response?.data?.error ?? e.message;
+        const msg = friendlyError(e, t);
         const fallbackSourceId = row.itemId && row.sprintId
           ? `${row.sprintId}#${row.itemId}`
           : row.itemId ?? `bulk-${Date.now()}-${i}`;
@@ -240,7 +276,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
       }
 
       setProgress(i + 1);
-      if (i < rows.length - 1) await new Promise(r => setTimeout(r, 4000));
+      if (i < processRows.length - 1) await new Promise(r => setTimeout(r, 4000));
     }
 
     setResults(out);
@@ -255,8 +291,28 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
         {t('bulk_desc')}
       </p>
 
+      {/* Tab switcher */}
+      <div style={{ display: 'flex', gap: '2px', marginBottom: '1rem', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', padding: '3px', width: 'fit-content' }}>
+        {(['file', 'table'] as const).map(mode => (
+          <button
+            key={mode}
+            onClick={() => { setInputMode(mode); setError(''); setResults([]); }}
+            style={{
+              padding: '5px 16px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
+              fontSize: '0.82rem', fontWeight: 600,
+              background: inputMode === mode ? 'var(--bg-surface)' : 'transparent',
+              color: inputMode === mode ? 'var(--text-primary)' : 'var(--text-muted)',
+              boxShadow: inputMode === mode ? '0 1px 3px rgba(0,0,0,.08)' : 'none',
+              transition: 'all 0.15s',
+            }}
+          >
+            {mode === 'file' ? t('bulk_tab_file') : t('bulk_tab_table')}
+          </button>
+        ))}
+      </div>
+
       {/* Step 1: File */}
-      <div className="panel" style={{ padding: '1rem', marginBottom: '1rem' }}>
+      {inputMode === 'file' && <div className="panel" style={{ padding: '1rem', marginBottom: '1rem' }}>
         <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.75rem' }}>
           {t('bulk_step1')}
         </div>
@@ -276,7 +332,132 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
           )}
         </div>
         {error && <div className="error" style={{ marginTop: '0.75rem' }}>{error}</div>}
-      </div>
+      </div>}
+
+      {/* Tablo girişi */}
+      {inputMode === 'table' && !results.length && (
+        <div className="panel" style={{ padding: '1rem', marginBottom: '1rem' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 700 }}>
+              <thead>
+                <tr style={{ background: 'var(--bg-base)' }}>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', width: 90 }}>{t('bulk_col_id')}</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>{t('bulk_col_title')} *</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', width: 160 }}>{t('bulk_col_task_type')}</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', width: 110 }}>{t('bulk_col_sprint')}</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>{t('bulk_col_desc')}</th>
+                  <th style={{ padding: '6px 4px', borderBottom: '1px solid var(--border)', width: 28 }} />
+                </tr>
+              </thead>
+              <tbody>
+                {tableRows.map((row, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '4px 6px' }}>
+                      <input
+                        value={row.itemId ?? ''}
+                        onChange={e => updateTableRow(i, 'itemId', e.target.value)}
+                        placeholder="PROJ-101"
+                        style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', fontSize: '0.8rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
+                      />
+                    </td>
+                    <td style={{ padding: '4px 6px' }}>
+                      <input
+                        value={row.title}
+                        onChange={e => updateTableRow(i, 'title', e.target.value)}
+                        placeholder={isTR ? 'PBI başlığı...' : 'PBI title...'}
+                        style={{ width: '100%', border: `1px solid ${row.title ? 'var(--border)' : 'var(--border)'}`, borderRadius: 4, padding: '4px 6px', fontSize: '0.8rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
+                      />
+                    </td>
+                    <td style={{ padding: '4px 6px' }}>
+                      <select
+                        value={row.taskType ?? ''}
+                        onChange={e => updateTableRow(i, 'taskType', e.target.value)}
+                        style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', fontSize: '0.8rem', background: 'var(--bg-surface)', color: row.taskType ? 'var(--text-primary)' : 'var(--text-muted)', boxSizing: 'border-box' }}
+                      >
+                        <option value="">{isTR ? 'otomatik' : 'auto'}</option>
+                        {TASK_TYPE_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{isTR ? opt.labelTR : opt.labelEN}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={{ padding: '4px 6px' }}>
+                      <input
+                        value={row.sprintId ?? ''}
+                        onChange={e => updateTableRow(i, 'sprintId', e.target.value)}
+                        placeholder="Sprint-42"
+                        style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', fontSize: '0.8rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
+                      />
+                    </td>
+                    <td style={{ padding: '4px 6px' }}>
+                      <input
+                        value={row.description ?? ''}
+                        onChange={e => updateTableRow(i, 'description', e.target.value)}
+                        placeholder={isTR ? 'Açıklama (opsiyonel)...' : 'Description (optional)...'}
+                        style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', fontSize: '0.8rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
+                      />
+                    </td>
+                    <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                      <button
+                        onClick={() => removeTableRow(i)}
+                        style={{ border: 'none', background: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '2px 4px' }}
+                        title={isTR ? 'Satırı sil' : 'Remove row'}
+                      >×</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={addTableRow}
+              disabled={tableRows.length >= 50}
+              style={{ fontSize: '0.82rem' }}
+            >
+              {t('bulk_table_add_row')}
+            </button>
+            {tableRows.length >= 50 && (
+              <span className="criterion-desc" style={{ fontSize: '0.78rem' }}>{t('bulk_table_max')}</span>
+            )}
+            {(() => {
+              const validCount = tableRows.filter(r => r.title.trim()).length;
+              return validCount > 0 ? (
+                <span className="criterion-desc" style={{ fontSize: '0.78rem' }}>
+                  {t('bulk_table_valid_rows').replace('{count}', String(validCount))}
+                </span>
+              ) : null;
+            })()}
+            <div style={{ flex: 1 }} />
+            {processing ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span className="criterion-desc" style={{ fontSize: '0.8rem' }}>{t('bulk_analyzing')} {progress} / {tableRows.filter(r => r.title.trim()).length}</span>
+                <div className="progress-track" style={{ width: 120, height: '6px', display: 'block', marginLeft: 0 }}>
+                  <div className="progress-fill" style={{ width: `${(progress / tableRows.filter(r => r.title.trim()).length) * 100}%` }} />
+                </div>
+              </div>
+            ) : (
+              <button
+                className="primary"
+                disabled={!tableRows.some(r => r.title.trim())}
+                onClick={() => {
+                  const valid = tableRows.filter(r => r.title.trim()).map(r => ({
+                    ...r,
+                    title: r.title.trim(),
+                    description: r.description?.trim() || undefined,
+                    sprintId: r.sprintId?.trim() || undefined,
+                    itemId: r.itemId?.trim() || undefined,
+                  }));
+                  handleProcess(valid);
+                }}
+              >
+                {t('bulk_table_start')}
+              </button>
+            )}
+          </div>
+          {error && <div className="error" style={{ marginTop: '0.75rem' }}>{error}</div>}
+        </div>
+      )}
 
       {/* Önizleme */}
       {rows.length > 0 && !results.length && (
@@ -344,6 +525,18 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
               {t('bulk_export')}
             </button>
           </div>
+
+          {/* Başarısız satır uyarısı */}
+          {(() => {
+            const failedCount = results.filter(r => r.error).length;
+            if (!failedCount) return null;
+            return (
+              <div className="error" style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>⚠</span>
+                <span>{t('bulk_failed_banner').replace('{count}', String(failedCount))}</span>
+              </div>
+            );
+          })()}
 
           {/* Özet */}
           <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api/client';
 import type { EstimateResponse, TaskType, CriteriaValue, BaselineStory } from '../api/types';
 import { useLang } from '../contexts/LangContext';
+import { friendlyError } from '../utils/friendlyError';
 import { BOOLEAN_CRITERIA } from '../engine/registry';
 import { TEMPLATES } from '../engine/templates';
 
@@ -490,7 +491,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
         setAutoFilledKeys(data.sources ?? {});
       }
     } catch (e: any) {
-      setAnalyzeError(e.response?.data?.error || e.message);
+      setAnalyzeError(friendlyError(e, t));
     } finally {
       setAnalyzing(false);
     }
@@ -527,7 +528,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
         return [entry, ...prev].slice(0, 20);
       });
     } catch (e: any) {
-      setError(e.response?.data?.error || e.message);
+      setError(friendlyError(e, t));
     } finally {
       setLoading(false);
     }
@@ -542,7 +543,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
       });
       setApproveSuccess(sp);
     } catch (e: any) {
-      setError(e.response?.data?.error || e.message);
+      setError(friendlyError(e, t));
     }
   }
 
@@ -830,7 +831,12 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
         })}
       </div>
 
-      {error && <div className="error">{error}</div>}
+      {error && (
+        <div className="error" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+          <span>{error}</span>
+          <button onClick={handleEstimate} style={{ flexShrink: 0, fontSize: '0.8rem', padding: '4px 10px' }}>{t('error_retry')}</button>
+        </div>
+      )}
 
       {result && <BaselineRefs baselines={baselines} taskType={result.taskType} suggestedSP={result.suggestedSP} currentCriteria={criteria} teamId={teamId} t={t} criteriaLabel={criteriaLabel} scaleLabel={scaleLabel} />}
 

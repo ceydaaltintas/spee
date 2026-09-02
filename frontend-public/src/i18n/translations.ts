@@ -10,6 +10,8 @@ export const UI: Record<Lang, Record<string, string>> = {
     nav_bulk: 'Toplu Tahmin',
 
     // Team chip / dropdown
+    onboard_banner_text: 'Henüz bir takımın yok. Gerçek tahminlere başlamak için takımını oluştur.',
+    onboard_banner_btn: 'Takım Oluştur',
     team_getting_started: 'Başlarken',
     team_getting_started_desc: 'Kendi takımını oluştur ya da davet kodunla mevcut bir takıma katıl.',
     team_create_new: '+ Yeni Takım Oluştur',
@@ -309,6 +311,21 @@ export const UI: Record<Lang, Record<string, string>> = {
     bulk_error_empty: 'Dosyada geçerli satır bulunamadı. "title" sütunu zorunlu.',
     bulk_error_max: 'Maksimum 50 satır destekleniyor.',
     bulk_error_read: 'Dosya okunamadı. Lütfen geçerli bir .xlsx veya .csv dosyası yükleyin.',
+    bulk_tab_file: 'Excel Yükle',
+    bulk_tab_table: 'Tabloya Gir',
+    bulk_table_add_row: '+ Satır Ekle',
+    bulk_table_start: 'Tahminleri Başlat',
+    bulk_table_valid_rows: '{count} satır girildi',
+    bulk_table_max: 'Maksimum 50 satıra ulaşıldı.',
+    bulk_col_id: 'ID',
+    bulk_failed_banner: '{count} satır tahmin edilemedi.',
+
+    error_network: 'Sunucuya ulaşılamıyor. İnternet bağlantınızı kontrol edin.',
+    error_rate_limit: 'AI kota sınırına ulaşıldı, lütfen 1 dakika bekleyip tekrar deneyin.',
+    error_ai_down: 'AI servisi şu an yanıt vermiyor. Lütfen birkaç saniye sonra tekrar deneyin.',
+    error_timeout: 'İstek zaman aşımına uğradı. Lütfen tekrar deneyin.',
+    error_unknown: 'Beklenmedik bir hata oluştu.',
+    error_retry: 'Tekrar Dene',
 
     // System Templates
     tmpl_simple_api_name: 'Basit API Endpoint',
@@ -336,6 +353,8 @@ export const UI: Record<Lang, Record<string, string>> = {
     nav_bulk: 'Bulk Estimate',
 
     // Team chip / dropdown
+    onboard_banner_text: "You don't have a team yet. Create your team to start real estimations.",
+    onboard_banner_btn: 'Create Team',
     team_getting_started: 'Getting Started',
     team_getting_started_desc: 'Create your own team or join an existing one with an invite code.',
     team_create_new: '+ Create New Team',
@@ -635,6 +654,21 @@ export const UI: Record<Lang, Record<string, string>> = {
     bulk_error_empty: 'No valid rows found in file. The "title" column is required.',
     bulk_error_max: 'Maximum 50 rows supported.',
     bulk_error_read: 'Could not read file. Please upload a valid .xlsx or .csv file.',
+    bulk_tab_file: 'Upload Excel',
+    bulk_tab_table: 'Enter Table',
+    bulk_table_add_row: '+ Add Row',
+    bulk_table_start: 'Start Estimation',
+    bulk_table_valid_rows: '{count} rows entered',
+    bulk_table_max: 'Maximum 50 rows reached.',
+    bulk_col_id: 'ID',
+    bulk_failed_banner: '{count} rows could not be estimated.',
+
+    error_network: 'Cannot reach the server. Check your internet connection.',
+    error_rate_limit: 'AI rate limit reached. Please wait a minute and try again.',
+    error_ai_down: 'The AI service is not responding right now. Please try again in a few seconds.',
+    error_timeout: 'Request timed out. Please try again.',
+    error_unknown: 'An unexpected error occurred.',
+    error_retry: 'Try Again',
 
     // System Templates
     tmpl_simple_api_name: 'Simple API Endpoint',

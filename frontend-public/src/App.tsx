@@ -140,6 +140,7 @@ function AppInner() {
   }
 
   const currentTeam = teams.find(t => t.id === teamId);
+  const isFirstTime = teams.filter(t => t.name && t.id !== DEMO_TEAM_ID).length === 0;
 
   return (
     <BrowserRouter>
@@ -338,6 +339,31 @@ function AppInner() {
                 <NavLink to="/bulk">{t('nav_bulk')}</NavLink>
               </div>
             </nav>
+
+            {/* ── Onboarding banner ── */}
+            {isFirstTime && (
+              <div style={{
+                background: 'var(--accent-dim)',
+                borderBottom: '1px solid var(--accent-border)',
+                padding: '0.6rem 1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                flexWrap: 'wrap',
+              }}>
+                <span style={{ fontSize: '1rem' }}>👋</span>
+                <span style={{ fontSize: '0.83rem', color: 'var(--accent-text)', fontWeight: 500, flex: 1 }}>
+                  {t('onboard_banner_text')}
+                </span>
+                <button
+                  className="primary"
+                  style={{ fontSize: '0.8rem', padding: '5px 14px', flexShrink: 0 }}
+                  onClick={() => { setShowCreate(true); setShowTeamMenu(false); }}
+                >
+                  {t('onboard_banner_btn')}
+                </button>
+              </div>
+            )}
 
             <main>
               {!teamId ? (
