@@ -1,5 +1,3 @@
-type Translations = Record<string, string>;
-
 export function friendlyError(e: any, t: (key: string) => string): string {
   const status = e?.response?.status;
   const serverMsg = e?.response?.data?.error;

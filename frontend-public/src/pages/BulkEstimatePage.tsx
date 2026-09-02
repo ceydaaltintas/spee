@@ -506,7 +506,7 @@ export default function BulkEstimatePage({ teamId }: { teamId: string }) {
                 </div>
               </div>
             ) : (
-              <button onClick={handleProcess} className="primary">
+              <button onClick={() => handleProcess()} className="primary">
                 {t('bulk_start')}
               </button>
             )}
