@@ -407,6 +407,33 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
   }, [teamId]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const title = params.get('title');
+    const desc = params.get('desc');
+    const type = params.get('type');
+    const id = params.get('id');
+    const sprint = params.get('sprint');
+    if (!title) return;
+    const TFS_TYPE_MAP: Record<string, TaskType> = {
+      'bug': 'BUG', 'hata': 'BUG',
+      'user story': 'USER_STORY', 'kullanici hikayesi': 'USER_STORY', 'product backlog item': 'USER_STORY',
+      'task': 'SUB_TASK', 'gorev': 'SUB_TASK',
+      'test case': 'TEST_TASK', 'test': 'TEST_TASK',
+      'feature': 'USER_STORY', 'epic': 'USER_STORY',
+    };
+    if (title) setPbiTitle(title);
+    if (desc) setPbiDesc(desc);
+    if (type) {
+      const mapped = TFS_TYPE_MAP[type.toLowerCase()];
+      if (mapped) setTaskType(mapped);
+    }
+    if (id) setSourceId(id);
+    if (sprint) setSprintId(sprint);
+    if (title) { setShowAnalyzePanel(true); setShowSourcePanel(!!id); }
+    window.history.replaceState({}, '', window.location.pathname);
+  }, []);
+
+  useEffect(() => {
     saveDraft({ sourceSystem, sourceId, taskType, sprintId, criteria, pbiTitle, pbiDesc, autoFilledKeys });
   }, [sourceSystem, sourceId, taskType, sprintId, criteria]);
   const [showTemplates, setShowTemplates] = useState(false);
