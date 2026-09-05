@@ -689,7 +689,7 @@ export default function HowItWorksPage() {
           </p>
           <div className="hiw-hero-4" style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={() => navigate('/estimate')} style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 28px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-              {isTR ? '⚡ Hemen Dene' : '⚡ Try It Now'}
+              {isTR ? 'Hemen Dene' : 'Try It Now'}
             </button>
             <button onClick={() => navigate('/')} style={{ background: 'transparent', border: '1.5px solid var(--border)', borderRadius: 10, padding: '11px 22px', fontWeight: 600, fontSize: 14, cursor: 'pointer', color: 'var(--text-primary)' }}>
               {isTR ? '← Ana Sayfa' : '← Home'}
@@ -849,7 +849,7 @@ export default function HowItWorksPage() {
             {isTR ? 'Kayıt yok, kurulum yok. Takımını oluştur ve hemen başla.' : 'No sign-up, no setup. Create your team and get started.'}
           </p>
           <button onClick={() => navigate('/estimate')} style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 12, padding: '13px 36px', fontWeight: 800, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 20px rgba(79,70,229,.3)' }}>
-            {isTR ? '⚡ Uygulamayı Aç' : '⚡ Open the App'}
+            {isTR ? 'Uygulamayı Aç' : 'Open the App'}
           </button>
         </div>
 

@@ -241,7 +241,7 @@ export default function LandingPage() {
                 boxShadow: '0 4px 20px rgba(79,70,229,0.35)',
               }}
             >
-              {isTR ? '⚡ Hemen Başla' : '⚡ Get Started'}
+              {isTR ? 'Hemen Başla' : 'Get Started'}
             </button>
             <button
               className="lp-secondary-btn"
