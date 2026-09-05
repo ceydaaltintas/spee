@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "SPEE – TFS Estimator",
+  "version": "1.0.0",
+  "description": "TFS iş kalemi sayfasından SPEE'de tahmin başlat",
+  "permissions": ["activeTab", "scripting", "tabs"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SPEE ile Tahmin Et"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*/*"],
+      "js": ["content_script.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

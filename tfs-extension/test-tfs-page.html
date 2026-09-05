@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>1234 – Login sayfası şifre sıfırlama</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f3f3f3; margin: 0; }
+    .header { background: #0078d4; color: white; padding: 10px 20px; font-size: 14px; }
+    .container { max-width: 900px; margin: 20px auto; background: white; padding: 20px; border: 1px solid #ddd; }
+    .wi-type { font-size: 12px; color: #666; margin-bottom: 8px; }
+    .work-item-form-title { width: 100%; font-size: 20px; font-weight: 600; border: none; border-bottom: 1px solid #eee; padding: 4px 0; outline: none; }
+    .field-row { display: flex; gap: 20px; margin-top: 16px; }
+    .field { flex: 1; }
+    .field label { font-size: 11px; color: #666; display: block; margin-bottom: 4px; }
+    .work-item-type-name { font-weight: 600; color: #0078d4; }
+    .combo-drop-call { font-size: 13px; }
+    .desc { margin-top: 16px; }
+    .richeditor-text { border: 1px solid #eee; padding: 8px; min-height: 80px; font-size: 13px; color: #333; }
+    .note { background: #fffbe6; border: 1px solid #ffe58f; padding: 10px 14px; margin-bottom: 16px; font-size: 12px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="header">Azure DevOps Server / TFS — Test Sayfası</div>
+  <div class="container">
+    <div class="note">
+      ℹ️ Bu sayfa extension testine yönelik sahte TFS sayfasıdır. Extension ikonuna tıklayarak test edebilirsiniz.
+    </div>
+
+    <div class="wi-type">
+      <span class="work-item-type-name">User Story</span> &nbsp;|&nbsp; ID: 1234
+    </div>
+
+    <input
+      class="work-item-form-title"
+      value="Login sayfası şifre sıfırlama akışı"
+      aria-label="Title"
+    />
+
+    <div class="field-row">
+      <div class="field">
+        <label>Iteration Path</label>
+        <span class="combo-drop-call" aria-label="Iteration Path">Proje\Sprint-42</span>
+      </div>
+      <div class="field">
+        <label>Assigned To</label>
+        <span>Ceyda Altıntaş</span>
+      </div>
+    </div>
+
+    <div class="desc">
+      <label style="font-size:11px;color:#666;">Description</label>
+      <div class="richeditor-text">
+        Kullanıcı şifresini unuttuğunda email üzerinden JWT token ile sıfırlama yapabilmeli. Güvenlik kısıtları var, token 15 dakika geçerli olacak.
+      </div>
+    </div>
+  </div>
+</body>
+</html>

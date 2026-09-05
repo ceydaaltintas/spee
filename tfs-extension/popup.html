@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 300px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      background: #fff;
+      color: #1a1a1a;
+    }
+    .header {
+      background: #4c40d4;
+      color: #fff;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header svg { flex-shrink: 0; }
+    .header-title { font-weight: 700; font-size: 14px; }
+    .header-sub { font-size: 11px; opacity: 0.8; }
+    .body { padding: 14px; }
+    .field { margin-bottom: 10px; }
+    .label { font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
+    .value { font-size: 13px; color: #1a1a1a; word-break: break-word; }
+    .value.muted { color: #999; font-style: italic; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #eeedf9;
+      color: #4c40d4;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      background: #4c40d4;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 14px;
+      text-align: center;
+    }
+    .btn:hover { background: #3d32b8; }
+    .btn:disabled { background: #ccc; cursor: default; }
+    .error { color: #c0392b; font-size: 12px; margin-top: 8px; }
+    .loading { color: #999; font-size: 12px; text-align: center; padding: 20px 0; }
+    .divider { border: none; border-top: 1px solid #eee; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <svg width="20" height="20" viewBox="0 0 48 46" fill="none">
+      <path fill="white" d="M25.946 44.938c-.664.845-2.021.375-2.021-.698V33.937a2.26 2.26 0 0 0-2.262-2.262H10.287c-.92 0-1.456-1.04-.92-1.788l7.48-10.471c1.07-1.497 0-3.578-1.842-3.578H1.237c-.92 0-1.456-1.04-.92-1.788L10.013.474c.214-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.471c-1.07 1.498 0 3.579 1.842 3.579h11.377c.943 0 1.473 1.088.89 1.83L25.947 44.94z"/>
+    </svg>
+    <div>
+      <div class="header-title">SPEE Estimator</div>
+      <div class="header-sub">TFS → Story Point Tahmini</div>
+    </div>
+  </div>
+
+  <div class="body">
+    <div id="loading" class="loading">İş kalemi okunuyor...</div>
+    <div id="content" style="display:none">
+      <div class="field">
+        <div class="label">ID</div>
+        <div class="value" id="wi-id">—</div>
+      </div>
+      <div class="field">
+        <div class="label">Başlık</div>
+        <div class="value" id="wi-title">—</div>
+      </div>
+      <div class="field">
+        <div class="label">Tip</div>
+        <div class="value" id="wi-type">—</div>
+      </div>
+      <div class="field">
+        <div class="label">Sprint</div>
+        <div class="value" id="wi-sprint">—</div>
+      </div>
+      <hr class="divider" />
+      <div class="field">
+        <div class="label">Açıklama</div>
+        <div class="value" id="wi-desc">—</div>
+      </div>
+      <button class="btn" id="open-btn">SPEE'de Tahmin Et →</button>
+      <div class="error" id="error-msg" style="display:none"></div>
+    </div>
+    <div id="not-tfs" style="display:none">
+      <p style="color:#999; font-size:12px; text-align:center; padding:20px 0;">
+        Bu sayfa bir TFS iş kalemi sayfası değil.<br/>
+        Bir iş kalemi açıkken kullanın.
+      </p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
