@@ -32,6 +32,7 @@ function CountInput({ criteriaKey, value, onChange }: { criteriaKey: string; val
   return (
     <input
       type="text" inputMode="numeric"
+      style={{ width: '100%' }}
       value={text}
       onChange={e => {
         const v = e.target.value.replace(/[^0-9]/g, '');
@@ -329,6 +330,7 @@ export default function BaselinesSection({ teamId }: { teamId: string }) {
                       </label>
                     ) : c.type === 'scale5' ? (
                       <select
+                        style={{ width: '100%' }}
                         value={(criteria[c.key]?.value as number) ?? ''}
                         onChange={e => setCriterion(c.key, 'scale5', e.target.value)}
                       >
