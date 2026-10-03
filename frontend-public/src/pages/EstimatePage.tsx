@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../api/client';
 import type { EstimateResponse, TaskType, CriteriaValue, BaselineStory } from '../api/types';
 import { useLang } from '../contexts/LangContext';
@@ -406,6 +406,14 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
     api.get<TeamSummary>(`/history/${teamId}/summary`).then(r => setSummary(r.data)).catch(() => {});
   }, [teamId]);
 
+  const prevTeamId = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevTeamId.current !== null && prevTeamId.current !== teamId) {
+      handleReset();
+    }
+    prevTeamId.current = teamId;
+  }, [teamId]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const title = params.get('title');
@@ -505,16 +513,22 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
 
   function handleReset() {
     setCriteria({ teamMemberCount: { type: 'count', value: 1 } });
+    setTaskType('USER_STORY');
     setSourceId('');
+    setSprintId('');
     setResult(null);
     setError('');
     setApproveSuccess(null);
-    setSprintId('');
     setActiveBaseline(null);
     setBaselineDirty(false);
     setPbiTitle('');
     setPbiDesc('');
     setAutoFilledKeys({});
+    setShowAnalyzePanel(false);
+    setShowTemplates(false);
+    setSessionHistory([]);
+    setCompareId(null);
+    setSessionCounter(1);
     localStorage.removeItem(DRAFT_KEY);
   }
 
