@@ -398,7 +398,7 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
   const [compareId, setCompareId] = useState<number | null>(null);
   const [sessionCounter, setSessionCounter] = useState(1);
   const [baselines, setBaselines] = useState<BaselineStory[]>([]);
-  const [activeBaseline, setActiveBaseline] = useState<BaselineStory | null>(null);
+  const [activeBaseline, setActiveBaseline] = useState<BaselineStory | null>(draft?.activeBaseline ?? null);
   const [baselineDirty, setBaselineDirty] = useState(false);
 
   useEffect(() => {
@@ -442,8 +442,8 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
   }, []);
 
   useEffect(() => {
-    saveDraft({ sourceSystem, sourceId, taskType, sprintId, criteria, pbiTitle, pbiDesc, autoFilledKeys });
-  }, [sourceSystem, sourceId, taskType, sprintId, criteria]);
+    saveDraft({ sourceSystem, sourceId, taskType, sprintId, criteria, pbiTitle, pbiDesc, autoFilledKeys, activeBaseline });
+  }, [sourceSystem, sourceId, taskType, sprintId, criteria, activeBaseline]);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showSourcePanel, setShowSourcePanel] = useState(false);
   const [showAnalyzePanel, setShowAnalyzePanel] = useState(false);
