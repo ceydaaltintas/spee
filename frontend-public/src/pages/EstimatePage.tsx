@@ -478,7 +478,22 @@ export default function EstimatePage({ teamId, teamConfig }: { teamId: string; t
   }
 
   function applyBaseline(b: BaselineStory) {
-    if (b.taskType) setTaskType(b.taskType as TaskType);
+    if (b.taskType) {
+      setTaskType(b.taskType as TaskType);
+    } else {
+      // General baseline: infer task type from criteria keys
+      const snap = b.criteriaSnapshot as Record<string, CriteriaValue> | null;
+      if (snap) {
+        const snapKeys = Object.keys(snap);
+        let bestType: TaskType = taskType;
+        let bestScore = 0;
+        for (const [tt, crits] of Object.entries(CRITERIA_BY_TASK_TYPE)) {
+          const score = snapKeys.filter(k => crits.some(c => c.key === k)).length;
+          if (score > bestScore) { bestScore = score; bestType = tt as TaskType; }
+        }
+        if (bestScore > 0) setTaskType(bestType);
+      }
+    }
     const snap = b.criteriaSnapshot as Record<string, CriteriaValue> | null;
     if (snap) setCriteria(snap);
     setResult(null);
