@@ -887,8 +887,14 @@ tbody tr:hover { background: var(--bg-elevated); }
   display: flex;
   align-items: flex-start;
   gap: 1rem;
+  flex-wrap: wrap;
   box-shadow: var(--shadow-sm);
   transition: background var(--t), border-color var(--t), box-shadow var(--t);
+}
+
+@media (max-width: 480px) {
+  .baseline-card { flex-direction: column; gap: 0.6rem; }
+  .baseline-card > div:last-child { flex-shrink: 1; flex-wrap: wrap; }
 }
 
 .baseline-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
